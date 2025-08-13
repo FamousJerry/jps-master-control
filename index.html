@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="en"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Job Scheduling - Jingjai Productions Master Control&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>body { background-color: #141414; font-family: 'Inter', sans-serif; color: #fff; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.logo-neon { color: #39FF14; text-shadow: 0 0 2px #39FF14, 0 0 5px #39FF14, 0 0 10px #1c7a0a; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>#mainNav a.active-nav { color: #39FF14; font-weight: 700; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.action-button { background-color: #2d9e1c; transition: background-color 0.3s; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.action-button:hover { background-color: #39FF14; color: #141414; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.view-toggle button.active { background-color: #39FF14; color: #141414; font-weight: bold; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.view-toggle button { background-color: #3f3f46; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.calendar-grid-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.day-column { background-color: #1f1f1f; border-radius: 8px; padding: 12px; height: calc(100vh - 280px); overflow-y: auto; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.day-column::-webkit-scrollbar { width: 6px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.day-column::-webkit-scrollbar-thumb { background-color: #333; border-radius: 3px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.calendar-grid-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #4a4a4a; border: 1px solid #4a4a4a; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.month-day { background-color: #1f1f1f; min-height: 120px; padding: 8px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.month-day.not-current-month { background-color: #181818; color: #555; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.month-day .day-number { text-align: right; font-size: 0.8rem; color: #aaa; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.month-job-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card { background-color: #2F2F2F; border-left: 4px solid #4f46e5; padding: 12px; border-radius: 6px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s ease; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card:hover { transform: translateY(-2px); background-color: #3a3a3a; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card.my-job { border-left-width: 8px; border-left-color: #39FF14; background-color: #3a3a3a; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-completed { border-color: #22c55e; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-inprogress { border-color: #eab308; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-problem { border-color: #ef4444; }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.modal { background-color: rgba(0,0,0,0.75); }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.modal-content { background-color: #181818; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body class="bg-[#141414]"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;header class="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center" id="navbar"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center space-x-4 md:space-x-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;h1 class="text-lg md:text-2xl font-bold logo-neon whitespace-nowrap"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="hidden md:inline"&gt;Jingjai Productions Master Control&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="md:hidden"&gt;JP Master Control&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;nav id="mainNav" class="hidden md:flex space-x-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Dashboard&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;CRM&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Inventory&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Sales Quoting&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300 active-nav"&gt;Job Scheduling&lt;/a&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/nav&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center space-x-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-right"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="userName" class="font-semibold"&gt;John 'JPS' Smith&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="userRole" class="text-xs text-gray-400"&gt;Administrator&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;img src="https://placehold.co/40x40/34D399/FFFFFF?text=J" alt="User Profile" class="rounded-md"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/header&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;main class="pt-24 px-4 md:px-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;h2 class="text-3xl font-bold"&gt;Job Scheduling&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="currentDateDisplay" class="text-gray-400"&gt;August 2025&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="flex items-center space-x-2 md:space-x-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;select id="userRoleSwitcher" class="bg-gray-700 rounded-md p-2 font-semibold text-sm"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="admin"&gt;Admin View&lt;/option&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="Alice"&gt;Team Member: Alice&lt;/option&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="Bob"&gt;Team Member: Bob&lt;/option&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/select&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="view-toggle bg-gray-800 rounded-md p-1 flex"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button id="weekViewBtn" class="px-3 py-1 rounded-md text-sm active"&gt;Week&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button id="monthViewBtn" class="px-3 py-1 rounded-md text-sm"&gt;Month&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;button class="action-button font-bold py-2 px-4 rounded-md text-sm whitespace-nowrap"&gt;Add Job&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="calendar-container"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/main&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="jobModal" class="fixed inset-0 z-50 hidden items-center justify-center modal"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="jobModalContent" class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-2xl"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const users = {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>admin: { name: "John 'JPS' Smith", role: "Administrator" },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>Alice: { name: "Alice", role: "Team Member" },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>Bob: { name: "Bob", role: "Team Member" }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>};</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const jobs = [</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 1, date: '2025-08-11', title: 'Client Photoshoot', client: 'Quantum Solutions', assignedTo: ['Alice', 'Bob'], status: 'completed' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 2, date: '2025-08-11', title: 'Equipment Prep', client: 'Internal Task', assignedTo: ['Charlie'], status: 'completed' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 3, date: '2025-08-12', title: 'Video Edit Session 1', client: 'Stellar Designs', assignedTo: ['Diana'], status: 'inprogress' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 4, date: '2025-08-12', title: 'On-site filming', client: 'Apex Industries', assignedTo: ['Alice', 'Evan'], status: 'planned' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 5, date: '2025-08-13', title: 'Pre-production Call', client: 'Nebula Corp', assignedTo: ['John'], status: 'planned' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 6, date: '2025-08-14', title: 'Drone Shoot (Weather Hold)', client: 'Fusion Works', assignedTo: ['Bob', 'Charlie'], status: 'problem' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 7, date: '2025-08-15', title: 'Final Video Delivery', client: 'Quantum Solutions', assignedTo: ['Diana'], status: 'planned' },</p>
+<p class="p1"><span class="Apple-converted-space">            </span>{ id: 8, date: '2025-08-20', title: 'New Project Kickoff', client: 'Evergreen Holdings', assignedTo: ['John', 'Alice'], status: 'planned' },</p>
+<p class="p1"><span class="Apple-converted-space">        </span>];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentUser = 'admin';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentView = 'week';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let currentDate = new Date('2025-08-13T12:00:00Z');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const calendarContainer = document.getElementById('calendar-container');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const weekViewBtn = document.getElementById('weekViewBtn');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const monthViewBtn = document.getElementById('monthViewBtn');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const userRoleSwitcher = document.getElementById('userRoleSwitcher');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const currentDateDisplay = document.getElementById('currentDateDisplay');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const jobModal = document.getElementById('jobModal');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const jobModalContent = document.getElementById('jobModalContent');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function renderCalendar() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.innerHTML = '';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (currentView === 'week') {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>renderWeeklyView();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>renderMonthlyView();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function renderWeeklyView() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentDateDisplay.textContent = `Week of ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const weekGrid = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>weekGrid.className = 'calendar-grid-week';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const startOfWeek = new Date(currentDate);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 0; i &lt; 7; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const day = new Date(startOfWeek);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>day.setDate(day.getDate() + i);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const dayColumn = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayColumn.className = 'day-column';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayColumn.innerHTML = `&lt;h4 class="font-bold text-center mb-4"&gt;${day.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}&lt;/h4&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const jobsForDay = jobs.filter(job =&gt; new Date(job.date).toDateString() === day.toDateString());</p>
+<p class="p1"><span class="Apple-converted-space">                </span>jobsForDay.forEach(job =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>dayColumn.appendChild(createJobCard(job));</p>
+<p class="p1"><span class="Apple-converted-space">                </span>});</p>
+<p class="p1"><span class="Apple-converted-space">                </span>weekGrid.appendChild(dayColumn);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.appendChild(weekGrid);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function renderMonthlyView() {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentDateDisplay.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const monthGrid = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>monthGrid.className = 'calendar-grid-month';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const year = currentDate.getFullYear();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const month = currentDate.getMonth();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const firstDay = new Date(year, month, 1);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const lastDay = new Date(year, month + 1, 0);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const startOffset = (firstDay.getDay() + 6) % 7;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 0; i &lt; startOffset; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const dayCell = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayCell.className = 'month-day not-current-month';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>monthGrid.appendChild(dayCell);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 1; i &lt;= lastDay.getDate(); i++) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const day = new Date(year, month, i);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const dayCell = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayCell.className = 'month-day';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayCell.innerHTML = `&lt;div class="day-number"&gt;${i}&lt;/div&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const jobsForDay = jobs.filter(job =&gt; new Date(job.date).toDateString() === day.toDateString());</p>
+<p class="p1"><span class="Apple-converted-space">                </span>const jobsContainer = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>jobsForDay.forEach(job =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>const dot = document.createElement('span');</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>dot.className = 'month-job-dot';</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>dot.style.backgroundColor = getStatusColor(job.status);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (job.assignedTo.includes(currentUser)) {</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>dot.classList.add('ring-2', 'ring-green-400');</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>jobsContainer.appendChild(dot);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>});</p>
+<p class="p1"><span class="Apple-converted-space">                </span>dayCell.appendChild(jobsContainer);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>monthGrid.appendChild(dayCell);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.appendChild(monthGrid);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function createJobCard(job) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const card = document.createElement('div');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>card.className = `job-card status-${job.status}`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>card.dataset.jobId = job.id;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (currentUser !== 'admin' &amp;&amp; job.assignedTo.includes(currentUser)) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>card.classList.add('my-job');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>card.innerHTML = `</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="font-bold"&gt;${job.title}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-sm text-gray-300"&gt;${job.client}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-xs text-gray-400 mt-2"&gt;Team: ${job.assignedTo.join(', ')}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>card.addEventListener('click', () =&gt; openJobModal(job.id));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return card;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function getStatusColor(status) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>switch(status) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>case 'completed': return '#22c55e';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>case 'inprogress': return '#eab308';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>case 'problem': return '#ef4444';</p>
+<p class="p1"><span class="Apple-converted-space">                </span>default: return '#4f46e5';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function openJobModal(jobId) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const job = jobs.find(j =&gt; j.id === jobId);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (!job) return;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let actionsHtml = '';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (currentUser === 'admin') {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>actionsHtml = `</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"&gt;Edit Job&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"&gt;Delete Job&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>} else if (job.assignedTo.includes(currentUser)) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>actionsHtml = `&lt;button class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"&gt;Request Change&lt;/button&gt;`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>jobModalContent.innerHTML = `</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="p-6"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="flex justify-between items-start"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;h3 class="text-2xl font-bold"&gt;${job.title}&lt;/h3&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                            </span>&lt;p class="text-lg text-gray-400"&gt;${job.client}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;button id="closeModalBtn" class="text-2xl"&gt;&amp;times;&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="my-4 border-t border-gray-700"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-2"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Date:&lt;/strong&gt; ${new Date(job.date).toLocaleDateString('en-US', { dateStyle: 'full' })}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; &lt;span class="font-semibold capitalize" style="color: ${getStatusColor(job.status)}"&gt;${job.status}&lt;/span&gt;&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Assigned Team:&lt;/strong&gt; ${job.assignedTo.join(', ')}&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="my-4 border-t border-gray-700"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="flex justify-end space-x-4"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                        </span>${actionsHtml}</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>jobModal.classList.remove('hidden');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>jobModal.classList.add('flex');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('closeModalBtn').addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>jobModal.classList.add('hidden');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>jobModal.classList.remove('flex');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>weekViewBtn.addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentView = 'week';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>weekViewBtn.classList.add('active');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>monthViewBtn.classList.remove('active');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>monthViewBtn.addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentView = 'month';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>monthViewBtn.classList.add('active');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>weekViewBtn.classList.remove('active');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>userRoleSwitcher.addEventListener('change', (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>currentUser = e.target.value;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const user = users[currentUser];</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('userName').textContent = user.name;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('userRole').textContent = user.role;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">        </span>document.addEventListener('DOMContentLoaded', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
