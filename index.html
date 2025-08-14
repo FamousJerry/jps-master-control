@@ -1,276 +1,310 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jingjai Productions Master Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #141414; font-family: 'Inter', sans-serif; color: #fff; }
+        .logo-neon { color: #39FF14; text-shadow: 0 0 2px #39FF14, 0 0 8px #39FF14, 0 0 15px #1c7a0a; }
+        .action-button { background-color: #2d9e1c; transition: background-color 0.3s; }
+        .action-button:hover { background-color: #39FF14; color: #141414; }
+        #mainNav a.active-nav { color: #39FF14; font-weight: 700; }
+        .form-input { background-color: #333; border: 1px solid #555; border-radius: 4px; padding: 12px 16px; width: 100%; color: #fff; transition: border-color 0.3s; }
+        .form-input:focus { outline: none; border-color: #39FF14; }
+        .module-card { background-color: #2F2F2F; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .module-card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .hidden-view { display: none; }
+    </style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Job Scheduling - Jingjai Productions Master Control&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>body { background-color: #141414; font-family: 'Inter', sans-serif; color: #fff; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.logo-neon { color: #39FF14; text-shadow: 0 0 2px #39FF14, 0 0 5px #39FF14, 0 0 10px #1c7a0a; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#mainNav a.active-nav { color: #39FF14; font-weight: 700; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.action-button { background-color: #2d9e1c; transition: background-color 0.3s; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.action-button:hover { background-color: #39FF14; color: #141414; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.view-toggle button.active { background-color: #39FF14; color: #141414; font-weight: bold; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.view-toggle button { background-color: #3f3f46; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.calendar-grid-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.day-column { background-color: #1f1f1f; border-radius: 8px; padding: 12px; height: calc(100vh - 280px); overflow-y: auto; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.day-column::-webkit-scrollbar { width: 6px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.day-column::-webkit-scrollbar-thumb { background-color: #333; border-radius: 3px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.calendar-grid-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #4a4a4a; border: 1px solid #4a4a4a; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.month-day { background-color: #1f1f1f; min-height: 120px; padding: 8px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.month-day.not-current-month { background-color: #181818; color: #555; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.month-day .day-number { text-align: right; font-size: 0.8rem; color: #aaa; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.month-job-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card { background-color: #2F2F2F; border-left: 4px solid #4f46e5; padding: 12px; border-radius: 6px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s ease; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card:hover { transform: translateY(-2px); background-color: #3a3a3a; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card.my-job { border-left-width: 8px; border-left-color: #39FF14; background-color: #3a3a3a; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-completed { border-color: #22c55e; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-inprogress { border-color: #eab308; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.job-card.status-problem { border-color: #ef4444; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.modal { background-color: rgba(0,0,0,0.75); }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.modal-content { background-color: #181818; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body class="bg-[#141414]"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;header class="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center" id="navbar"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center space-x-4 md:space-x-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;h1 class="text-lg md:text-2xl font-bold logo-neon whitespace-nowrap"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="hidden md:inline"&gt;Jingjai Productions Master Control&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="md:hidden"&gt;JP Master Control&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;nav id="mainNav" class="hidden md:flex space-x-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Dashboard&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;CRM&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Inventory&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300"&gt;Sales Quoting&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;a href="#" class="text-white font-semibold hover:text-gray-300 active-nav"&gt;Job Scheduling&lt;/a&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/nav&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex items-center space-x-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="text-right"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="userName" class="font-semibold"&gt;John 'JPS' Smith&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="userRole" class="text-xs text-gray-400"&gt;Administrator&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;img src="https://placehold.co/40x40/34D399/FFFFFF?text=J" alt="User Profile" class="rounded-md"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/header&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;main class="pt-24 px-4 md:px-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;h2 class="text-3xl font-bold"&gt;Job Scheduling&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="currentDateDisplay" class="text-gray-400"&gt;August 2025&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="flex items-center space-x-2 md:space-x-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;select id="userRoleSwitcher" class="bg-gray-700 rounded-md p-2 font-semibold text-sm"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="admin"&gt;Admin View&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="Alice"&gt;Team Member: Alice&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;option value="Bob"&gt;Team Member: Bob&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="view-toggle bg-gray-800 rounded-md p-1 flex"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button id="weekViewBtn" class="px-3 py-1 rounded-md text-sm active"&gt;Week&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button id="monthViewBtn" class="px-3 py-1 rounded-md text-sm"&gt;Month&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;button class="action-button font-bold py-2 px-4 rounded-md text-sm whitespace-nowrap"&gt;Add Job&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="calendar-container"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/main&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="jobModal" class="fixed inset-0 z-50 hidden items-center justify-center modal"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="jobModalContent" class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-2xl"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const users = {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>admin: { name: "John 'JPS' Smith", role: "Administrator" },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Alice: { name: "Alice", role: "Team Member" },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Bob: { name: "Bob", role: "Team Member" }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const jobs = [</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 1, date: '2025-08-11', title: 'Client Photoshoot', client: 'Quantum Solutions', assignedTo: ['Alice', 'Bob'], status: 'completed' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 2, date: '2025-08-11', title: 'Equipment Prep', client: 'Internal Task', assignedTo: ['Charlie'], status: 'completed' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 3, date: '2025-08-12', title: 'Video Edit Session 1', client: 'Stellar Designs', assignedTo: ['Diana'], status: 'inprogress' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 4, date: '2025-08-12', title: 'On-site filming', client: 'Apex Industries', assignedTo: ['Alice', 'Evan'], status: 'planned' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 5, date: '2025-08-13', title: 'Pre-production Call', client: 'Nebula Corp', assignedTo: ['John'], status: 'planned' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 6, date: '2025-08-14', title: 'Drone Shoot (Weather Hold)', client: 'Fusion Works', assignedTo: ['Bob', 'Charlie'], status: 'problem' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 7, date: '2025-08-15', title: 'Final Video Delivery', client: 'Quantum Solutions', assignedTo: ['Diana'], status: 'planned' },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 8, date: '2025-08-20', title: 'New Project Kickoff', client: 'Evergreen Holdings', assignedTo: ['John', 'Alice'], status: 'planned' },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let currentUser = 'admin';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let currentView = 'week';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let currentDate = new Date('2025-08-13T12:00:00Z');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const calendarContainer = document.getElementById('calendar-container');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const weekViewBtn = document.getElementById('weekViewBtn');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const monthViewBtn = document.getElementById('monthViewBtn');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const userRoleSwitcher = document.getElementById('userRoleSwitcher');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const currentDateDisplay = document.getElementById('currentDateDisplay');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const jobModal = document.getElementById('jobModal');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const jobModalContent = document.getElementById('jobModalContent');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function renderCalendar() {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.innerHTML = '';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (currentView === 'week') {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>renderWeeklyView();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>renderMonthlyView();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function renderWeeklyView() {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentDateDisplay.textContent = `Week of ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const weekGrid = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>weekGrid.className = 'calendar-grid-week';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const startOfWeek = new Date(currentDate);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 0; i &lt; 7; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const day = new Date(startOfWeek);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>day.setDate(day.getDate() + i);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const dayColumn = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayColumn.className = 'day-column';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayColumn.innerHTML = `&lt;h4 class="font-bold text-center mb-4"&gt;${day.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}&lt;/h4&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const jobsForDay = jobs.filter(job =&gt; new Date(job.date).toDateString() === day.toDateString());</p>
-<p class="p1"><span class="Apple-converted-space">                </span>jobsForDay.forEach(job =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>dayColumn.appendChild(createJobCard(job));</p>
-<p class="p1"><span class="Apple-converted-space">                </span>});</p>
-<p class="p1"><span class="Apple-converted-space">                </span>weekGrid.appendChild(dayColumn);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.appendChild(weekGrid);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function renderMonthlyView() {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentDateDisplay.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const monthGrid = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>monthGrid.className = 'calendar-grid-month';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const year = currentDate.getFullYear();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const month = currentDate.getMonth();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const firstDay = new Date(year, month, 1);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const lastDay = new Date(year, month + 1, 0);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const startOffset = (firstDay.getDay() + 6) % 7;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 0; i &lt; startOffset; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const dayCell = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayCell.className = 'month-day not-current-month';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>monthGrid.appendChild(dayCell);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>for (let i = 1; i &lt;= lastDay.getDate(); i++) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const day = new Date(year, month, i);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const dayCell = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayCell.className = 'month-day';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayCell.innerHTML = `&lt;div class="day-number"&gt;${i}&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const jobsForDay = jobs.filter(job =&gt; new Date(job.date).toDateString() === day.toDateString());</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const jobsContainer = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>jobsForDay.forEach(job =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>const dot = document.createElement('span');</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>dot.className = 'month-job-dot';</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>dot.style.backgroundColor = getStatusColor(job.status);</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>if (job.assignedTo.includes(currentUser)) {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>dot.classList.add('ring-2', 'ring-green-400');</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>jobsContainer.appendChild(dot);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>});</p>
-<p class="p1"><span class="Apple-converted-space">                </span>dayCell.appendChild(jobsContainer);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>monthGrid.appendChild(dayCell);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>calendarContainer.appendChild(monthGrid);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function createJobCard(job) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const card = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>card.className = `job-card status-${job.status}`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>card.dataset.jobId = job.id;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (currentUser !== 'admin' &amp;&amp; job.assignedTo.includes(currentUser)) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>card.classList.add('my-job');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>card.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="font-bold"&gt;${job.title}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-sm text-gray-300"&gt;${job.client}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-xs text-gray-400 mt-2"&gt;Team: ${job.assignedTo.join(', ')}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>card.addEventListener('click', () =&gt; openJobModal(job.id));</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return card;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function getStatusColor(status) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>switch(status) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'completed': return '#22c55e';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'inprogress': return '#eab308';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'problem': return '#ef4444';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>default: return '#4f46e5';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>function openJobModal(jobId) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const job = jobs.find(j =&gt; j.id === jobId);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (!job) return;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let actionsHtml = '';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (currentUser === 'admin') {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>actionsHtml = `</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"&gt;Edit Job&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"&gt;Delete Job&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else if (job.assignedTo.includes(currentUser)) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>actionsHtml = `&lt;button class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"&gt;Request Change&lt;/button&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>jobModalContent.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="p-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="flex justify-between items-start"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;h3 class="text-2xl font-bold"&gt;${job.title}&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;p class="text-lg text-gray-400"&gt;${job.client}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;button id="closeModalBtn" class="text-2xl"&gt;&amp;times;&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="my-4 border-t border-gray-700"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Date:&lt;/strong&gt; ${new Date(job.date).toLocaleDateString('en-US', { dateStyle: 'full' })}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; &lt;span class="font-semibold capitalize" style="color: ${getStatusColor(job.status)}"&gt;${job.status}&lt;/span&gt;&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p&gt;&lt;strong&gt;Assigned Team:&lt;/strong&gt; ${job.assignedTo.join(', ')}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="my-4 border-t border-gray-700"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="flex justify-end space-x-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>${actionsHtml}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>jobModal.classList.remove('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>jobModal.classList.add('flex');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('closeModalBtn').addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>jobModal.classList.add('hidden');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>jobModal.classList.remove('flex');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>weekViewBtn.addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentView = 'week';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>weekViewBtn.classList.add('active');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>monthViewBtn.classList.remove('active');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>monthViewBtn.addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentView = 'month';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>monthViewBtn.classList.add('active');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>weekViewBtn.classList.remove('active');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>userRoleSwitcher.addEventListener('change', (e) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentUser = e.target.value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const user = users[currentUser];</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('userName').textContent = user.name;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('userRole').textContent = user.role;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>document.addEventListener('DOMContentLoaded', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderCalendar();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+    <!-- This container holds the entire application. We will show/hide views inside it. -->
+    <div id="app-container">
+
+        <!-- LOGIN VIEW -->
+        <div id="login-view" class="flex items-center justify-center min-h-screen hidden-view">
+            <div class="w-full max-w-md p-8 space-y-8 rounded-lg" style="background-color: rgba(0, 0, 0, 0.8);">
+                <div class="text-center">
+                    <h1 class="text-3xl font-bold logo-neon mb-2">Jingjai Productions</h1>
+                    <h2 class="text-2xl font-semibold">Master Control Login</h2>
+                </div>
+                <form id="login-form" class="space-y-6">
+                    <div id="login-error" class="text-red-500 text-sm text-center hidden"></div>
+                    <div>
+                        <input id="login-email" type="email" required class="form-input" placeholder="Email address">
+                    </div>
+                    <div>
+                        <input id="login-password" type="password" required class="form-input" placeholder="Password">
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-sm font-bold text-white action-button">
+                            Sign in
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MAIN APPLICATION VIEW (Dashboard, Modules, etc.) -->
+        <div id="main-app-view" class="hidden-view">
+            <header class="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center">
+                <div class="flex items-center space-x-4 md:space-x-8">
+                    <h1 class="text-lg md:text-2xl font-bold logo-neon whitespace-nowrap">
+                        <span class="hidden md:inline">Jingjai Productions Master Control</span>
+                        <span class="md:hidden">JP Master Control</span>
+                    </h1>
+                    <nav id="mainNav" class="hidden md:flex space-x-4">
+                        <a href="#" data-view="dashboard-view" class="nav-link text-white font-semibold hover:text-gray-300 active-nav">Dashboard</a>
+                        <a href="#" data-view="crm-view" class="nav-link text-white font-semibold hover:text-gray-300">CRM</a>
+                        <a href="#" data-view="inventory-view" class="nav-link text-white font-semibold hover:text-gray-300">Inventory</a>
+                        <a href="#" data-view="admin-view" class="nav-link text-white font-semibold hover:text-gray-300">Admin</a>
+                    </nav>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p id="user-display-name" class="font-semibold"></p>
+                        <p id="user-display-role" class="text-xs text-gray-400"></p>
+                    </div>
+                    <button id="logout-button" class="text-xs text-gray-400 hover:text-white">Logout</button>
+                </div>
+            </header>
+
+            <main class="pt-24 px-4 md:px-8">
+                <!-- This is where the different module views will be shown -->
+                <div id="module-container">
+                    
+                    <!-- Dashboard View -->
+                    <div id="dashboard-view" class="module-view">
+                        <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="crm-view">
+                               <h3 class="font-bold text-lg">CRM</h3><p class="text-sm text-gray-400">Manage clients and leads.</p>
+                           </div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="inventory-view">
+                               <h3 class="font-bold text-lg">Inventory</h3><p class="text-sm text-gray-400">Track equipment and stock.</p>
+                           </div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer">
+                               <h3 class="font-bold text-lg">Sales Quoting</h3><p class="text-sm text-gray-400">Create and send quotes.</p>
+                           </div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer">
+                               <h3 class="font-bold text-lg">Job Scheduling</h3><p class="text-sm text-gray-400">Coordinate your team.</p>
+                           </div>
+                        </div>
+                    </div>
+
+                    <!-- CRM View (Placeholder) -->
+                    <div id="crm-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold">CRM Module</h2>
+                        <p class="text-gray-400 mt-4">This is where the Customer Relationship Management module will live.</p>
+                    </div>
+
+                    <!-- Inventory View (Placeholder) -->
+                    <div id="inventory-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold">Inventory Module</h2>
+                        <p class="text-gray-400 mt-4">This is where the Inventory Control module will live.</p>
+                    </div>
+
+                    <!-- Admin / User Management View -->
+                    <div id="admin-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold mb-6">Admin: User Management</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl font-semibold mb-4">Create New User</h3>
+                                <form id="create-user-form" class="space-y-4">
+                                    <div id="create-user-error" class="text-red-500 text-sm hidden"></div>
+                                    <div id="create-user-success" class="text-green-500 text-sm hidden"></div>
+                                    <input id="new-user-name" type="text" required class="form-input" placeholder="Full Name">
+                                    <input id="new-user-email" type="email" required class="form-input" placeholder="Email Address">
+                                    <input id="new-user-password" type="password" required class="form-input" placeholder="Password">
+                                    <select id="new-user-role" class="form-input">
+                                        <option value="Team Member">Team Member</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                    <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Create User</button>
+                                </form>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-semibold mb-4">Current Users</h3>
+                                <div id="user-list" class="space-y-2">
+                                    <!-- User list will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        // IMPORTANT: Replace this with your actual Firebase config object
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "jps-app-468911", // Your Project ID is correct here
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- DOM ELEMENTS ---
+        const loginView = document.getElementById('login-view');
+        const mainAppView = document.getElementById('main-app-view');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const logoutButton = document.getElementById('logout-button');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userDisplayRole = document.getElementById('user-display-role');
+        const mainNav = document.getElementById('mainNav');
+        const moduleContainer = document.getElementById('module-container');
+        const createUserForm = document.getElementById('create-user-form');
+        const createUserError = document.getElementById('create-user-error');
+        const createUserSuccess = document.getElementById('create-user-success');
+        const userList = document.getElementById('user-list');
+
+        // --- AUTHENTICATION LOGIC ---
+        
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is logged in
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    userDisplayName.textContent = userData.name;
+                    userDisplayRole.textContent = userData.role;
+                }
+                loginView.classList.add('hidden-view');
+                mainAppView.classList.remove('hidden-view');
+                listenForUsers(); // Start listening for user list changes
+            } else {
+                // User is logged out
+                loginView.classList.remove('hidden-view');
+                mainAppView.classList.add('hidden-view');
+            }
+        });
+
+        // Handle login form submission
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    loginError.textContent = "Error: " + error.message;
+                    loginError.classList.remove('hidden');
+                });
+        });
+
+        // Handle logout
+        logoutButton.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // --- USER MANAGEMENT LOGIC ---
+
+        // Handle create user form submission
+        createUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-user-name').value;
+            const email = document.getElementById('new-user-email').value;
+            const password = document.getElementById('new-user-password').value;
+            const role = document.getElementById('new-user-role').value;
+            
+            createUserError.classList.add('hidden');
+            createUserSuccess.classList.add('hidden');
+
+            try {
+                // IMPORTANT: Firebase doesn't let you create users this way from the client-side
+                // for security reasons. This is a placeholder. In a real app, this would be
+                // handled by a secure backend function. For now, we'll just add to the database.
+                // We will simulate the user creation by adding them to our 'users' collection.
+                // You would need to create the actual user in the Firebase Console.
+                
+                // This is a simplified example. A real app would need a secure way to do this.
+                // For now, we will just add the user profile to Firestore.
+                // You will need to create the user in the Firebase Auth console manually.
+                
+                // We'll use a placeholder UID for this example.
+                const placeholderUid = "user_" + Date.now();
+                await setDoc(doc(db, "users", placeholderUid), { name, email, role });
+
+                createUserSuccess.textContent = "User profile created in database. Please create their login in the Firebase Console.";
+                createUserSuccess.classList.remove('hidden');
+                createUserForm.reset();
+
+            } catch (error) {
+                createUserError.textContent = "Error: " + error.message;
+                createUserError.classList.remove('hidden');
+            }
+        });
+
+        // Listen for real-time updates to the user list
+        function listenForUsers() {
+            const usersCollection = collection(db, "users");
+            onSnapshot(usersCollection, (snapshot) => {
+                userList.innerHTML = ''; // Clear the list
+                snapshot.forEach((doc) => {
+                    const userData = doc.data();
+                    const userElement = document.createElement('div');
+                    userElement.className = 'bg-gray-700 p-2 rounded flex justify-between items-center';
+                    userElement.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${userData.name}</p>
+                            <p class="text-xs text-gray-400">${userData.email} - ${userData.role}</p>
+                        </div>
+                    `;
+                    userList.appendChild(userElement);
+                });
+            });
+        }
+
+
+        // --- NAVIGATION LOGIC ---
+        mainNav.addEventListener('click', (e) => {
+            if (e.target.classList.contains('nav-link')) {
+                e.preventDefault();
+                const viewId = e.target.dataset.view;
+                
+                // Hide all module views
+                document.querySelectorAll('.module-view').forEach(view => view.classList.add('hidden-view'));
+                
+                // Show the selected module view
+                document.getElementById(viewId).classList.remove('hidden-view');
+
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active-nav'));
+                e.target.classList.add('active-nav');
+            }
+        });
+        
+        // Handle clicking on dashboard cards to navigate
+        document.querySelectorAll('.module-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const viewId = e.currentTarget.dataset.view;
+                if(viewId) {
+                    document.querySelector(`.nav-link[data-view="${viewId}"]`).click();
+                }
+            });
+        });
+
+    </script>
 </body>
 </html>
