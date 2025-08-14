@@ -127,7 +127,32 @@
                         </div>
                     </div>
 
-                    <div id="sales-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Sales Quoting</h2><p class="text-gray-400 mt-4">This is where the Sales Quoting section will live.</p></div>
+                    <!-- Sales Quoting View -->
+                    <div id="sales-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold mb-6">Sales Quoting</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-1">
+                                <h3 class="text-xl font-semibold mb-4">Create New Quote</h3>
+                                <form id="add-quote-form" class="space-y-4">
+                                    <select id="quote-client" required class="form-input"></select>
+                                    <div id="quote-line-items" class="space-y-2">
+                                        <div class="flex gap-2"><input type="text" required class="form-input line-item-desc" placeholder="Line Item Description"><input type="number" required class="form-input line-item-amount w-32" placeholder="Amount"></div>
+                                    </div>
+                                    <button type="button" id="add-line-item-btn" class="text-sm text-green-400 hover:text-green-300">+ Add Line Item</button>
+                                    <div class="pt-2 text-right">
+                                        <span class="text-lg font-bold">Total:</span>
+                                        <span id="quote-total" class="text-xl font-bold text-green-400">$0.00</span>
+                                    </div>
+                                    <button type="submit" class="action-button font-bold py-2 px-4 rounded-md w-full">Save Quote</button>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2">
+                                <h3 class="text-xl font-semibold mb-4">Recent Quotes</h3>
+                                <div id="quote-list" class="space-y-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="scheduling-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Job Scheduling</h2><p class="text-gray-400 mt-4">This is where the Job Scheduling section will live.</p></div>
 
                     <!-- Admin View -->
@@ -157,10 +182,8 @@
         </div>
     </div>
     
-    <!-- Edit Client Modal -->
+    <!-- Modals -->
     <div id="edit-client-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal"><div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg"><div class="p-6"><div class="flex justify-between items-start"><div><h3 class="text-2xl font-bold">Edit Client</h3><p id="modal-client-id" class="text-sm text-gray-400"></p></div><button id="close-edit-client-modal-btn" class="text-2xl">&times;</button></div><div class="my-4 border-t border-gray-700"></div><form id="edit-client-form" class="space-y-4"><input id="edit-client-id" type="hidden"><input id="edit-client-name" type="text" required class="form-input" placeholder="Client Name"><input id="edit-client-contact" type="text" required class="form-input" placeholder="Primary Contact"><input id="edit-client-email" type="email" required class="form-input" placeholder="Contact Email"><select id="edit-client-status" class="form-input"><option>Lead</option><option>Active</option><option>On Hold</option><option>Archived</option></select><div class="flex justify-between items-center pt-4"><button id="delete-client-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button><button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button></div></form></div></div></div>
-    
-    <!-- Edit Inventory Item Modal -->
     <div id="edit-item-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal"><div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg"><div class="p-6"><div class="flex justify-between items-start"><div><h3 class="text-2xl font-bold">Edit Item</h3><p id="modal-item-id" class="text-sm text-gray-400"></p></div><button id="close-edit-item-modal-btn" class="text-2xl">&times;</button></div><div class="my-4 border-t border-gray-700"></div><form id="edit-item-form" class="space-y-4"><input id="edit-item-id" type="hidden"><input id="edit-item-name" type="text" required class="form-input" placeholder="Item Name"><input id="edit-item-category" type="text" required class="form-input" placeholder="Category"><input id="edit-item-quantity" type="number" required class="form-input" placeholder="Quantity"><select id="edit-item-status" class="form-input"><option>Available</option><option>In Use</option><option>Maintenance</option><option>Retired</option></select><div class="flex justify-between items-center pt-4"><button id="delete-item-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button><button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button></div></form></div></div></div>
 
 
@@ -185,32 +208,10 @@
         const db = getFirestore(app);
 
         // --- DOM ELEMENTS ---
-        const loginView = document.getElementById('login-view');
-        const mainAppView = document.getElementById('main-app-view');
-        const adminNavLink = document.getElementById('admin-nav-link');
-        const loginForm = document.getElementById('login-form');
-        const logoutButton = document.getElementById('logout-button');
-        const userDisplayName = document.getElementById('user-display-name');
-        const userDisplayRole = document.getElementById('user-display-role');
-        const mainNav = document.getElementById('mainNav');
-        const createUserForm = document.getElementById('create-user-form');
-        const userList = document.getElementById('user-list');
-        // Client Elements
-        const addClientForm = document.getElementById('add-client-form');
-        const clientList = document.getElementById('client-list');
-        const editClientModal = document.getElementById('edit-client-modal');
-        const editClientForm = document.getElementById('edit-client-form');
-        const closeEditClientModalBtn = document.getElementById('close-edit-client-modal-btn');
-        const deleteClientBtn = document.getElementById('delete-client-btn');
-        const modalClientId = document.getElementById('modal-client-id');
-        // Inventory Elements
-        const addItemForm = document.getElementById('add-item-form');
-        const inventoryList = document.getElementById('inventory-list');
-        const editItemModal = document.getElementById('edit-item-modal');
-        const editItemForm = document.getElementById('edit-item-form');
-        const closeEditItemModalBtn = document.getElementById('close-edit-item-modal-btn');
-        const deleteItemBtn = document.getElementById('delete-item-btn');
-        const modalItemId = document.getElementById('modal-item-id');
+        const loginView = document.getElementById('login-view'), mainAppView = document.getElementById('main-app-view'), adminNavLink = document.getElementById('admin-nav-link'), loginForm = document.getElementById('login-form'), logoutButton = document.getElementById('logout-button'), userDisplayName = document.getElementById('user-display-name'), userDisplayRole = document.getElementById('user-display-role'), mainNav = document.getElementById('mainNav'), createUserForm = document.getElementById('create-user-form'), userList = document.getElementById('user-list');
+        const addClientForm = document.getElementById('add-client-form'), clientList = document.getElementById('client-list'), editClientModal = document.getElementById('edit-client-modal'), editClientForm = document.getElementById('edit-client-form'), closeEditClientModalBtn = document.getElementById('close-edit-client-modal-btn'), deleteClientBtn = document.getElementById('delete-client-btn'), modalClientId = document.getElementById('modal-client-id');
+        const addItemForm = document.getElementById('add-item-form'), inventoryList = document.getElementById('inventory-list'), editItemModal = document.getElementById('edit-item-modal'), editItemForm = document.getElementById('edit-item-form'), closeEditItemModalBtn = document.getElementById('close-edit-item-modal-btn'), deleteItemBtn = document.getElementById('delete-item-btn'), modalItemId = document.getElementById('modal-item-id');
+        const addQuoteForm = document.getElementById('add-quote-form'), quoteClientSelect = document.getElementById('quote-client'), quoteLineItems = document.getElementById('quote-line-items'), addLineItemBtn = document.getElementById('add-line-item-btn'), quoteTotal = document.getElementById('quote-total'), quoteList = document.getElementById('quote-list');
         
         // --- AUTH & ROLE CHECK ---
         onAuthStateChanged(auth, async (user) => {
@@ -228,6 +229,7 @@
                 listenForUsers();
                 listenForClients();
                 listenForInventory();
+                listenForQuotes();
             } else {
                 loginView.style.display = 'flex';
                 mainAppView.style.display = 'none';
@@ -235,11 +237,7 @@
         });
 
         // --- LOGIN/LOGOUT ---
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value)
-                .catch((error) => alert("Error: " + error.message));
-        });
+        loginForm.addEventListener('submit', (e) => { e.preventDefault(); signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value).catch((error) => alert("Error: " + error.message)); });
         logoutButton.addEventListener('click', () => signOut(auth));
 
         // --- USER MANAGEMENT (ADMIN ONLY) ---
@@ -251,9 +249,7 @@
                 await setDoc(doc(db, "users", userCredential.user.uid), { name: name.value, email: email.value, role: role.value });
                 alert(`Successfully created user: ${name.value}`);
                 createUserForm.reset();
-            } catch (error) {
-                alert("Error: " + error.message);
-            }
+            } catch (error) { alert("Error: " + error.message); }
         });
 
         function listenForUsers() {
@@ -276,7 +272,6 @@
             await runTransaction(db, async (transaction) => {
                 const counterDoc = await transaction.get(counterRef);
                 if (!counterDoc.exists()) {
-                    // If counter doesn't exist, start it at 100000
                     nextId = 100001;
                     transaction.set(counterRef, { current_value: nextId });
                 } else {
@@ -293,14 +288,7 @@
             const { 'client-name': name, 'client-contact': contact, 'client-email': email, 'client-status': status } = addClientForm.elements;
             try {
                 const nextId = await getNextSequenceValue("client");
-                const clientData = {
-                    clientId: `CL-${nextId}`,
-                    name: name.value,
-                    contact: contact.value,
-                    email: email.value,
-                    status: status.value,
-                };
-                await addDoc(collection(db, "clients"), clientData);
+                await addDoc(collection(db, "clients"), { clientId: `CL-${nextId}`, name: name.value, contact: contact.value, email: email.value, status: status.value });
                 addClientForm.reset();
             } catch (error) { alert("Error adding client: " + error.message); }
         });
@@ -308,14 +296,17 @@
         function listenForClients() {
             onSnapshot(collection(db, "clients"), (snapshot) => {
                 clientList.innerHTML = '';
+                let clientOptionsHtml = '<option value="">Select a Client</option>';
                 snapshot.forEach((doc) => {
                     const client = { id: doc.id, ...doc.data() };
+                    clientOptionsHtml += `<option value="${client.clientId}">${client.name} (${client.clientId})</option>`;
                     const clientCard = document.createElement('div');
                     clientCard.className = 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600';
                     clientCard.innerHTML = `<div class="flex justify-between items-start"><h4 class="font-bold text-lg">${client.name}</h4><span class="text-xs font-mono text-gray-400">${client.clientId || 'N/A'}</span></div><p class="text-sm text-gray-300 mt-1">${client.contact} (${client.email})</p><p class="text-xs font-semibold mt-2 inline-block py-1 px-2 rounded-full bg-blue-500">${client.status}</p>`;
                     clientCard.addEventListener('click', () => openEditClientModal(client));
                     clientList.appendChild(clientCard);
                 });
+                quoteClientSelect.innerHTML = clientOptionsHtml;
             });
         }
 
@@ -356,14 +347,7 @@
             const { 'item-name': name, 'item-category': category, 'item-quantity': quantity, 'item-status': status } = addItemForm.elements;
             try {
                 const nextId = await getNextSequenceValue("inventory");
-                const itemData = {
-                    itemId: `INV-${nextId}`,
-                    name: name.value,
-                    category: category.value,
-                    quantity: Number(quantity.value),
-                    status: status.value
-                };
-                await addDoc(collection(db, "inventory"), itemData);
+                await addDoc(collection(db, "inventory"), { itemId: `INV-${nextId}`, name: name.value, category: category.value, quantity: Number(quantity.value), status: status.value });
                 addItemForm.reset();
             } catch (error) { alert("Error adding item: " + error.message); }
         });
@@ -412,6 +396,71 @@
                 } catch (error) { alert("Error deleting item: " + error.message); }
             }
         });
+
+        // --- SALES QUOTING LOGIC ---
+        function updateQuoteTotal() {
+            let total = 0;
+            document.querySelectorAll('.line-item-amount').forEach(input => {
+                total += Number(input.value) || 0;
+            });
+            quoteTotal.textContent = `$${total.toFixed(2)}`;
+        }
+
+        addLineItemBtn.addEventListener('click', () => {
+            const newItem = document.createElement('div');
+            newItem.className = 'flex gap-2';
+            newItem.innerHTML = `<input type="text" required class="form-input line-item-desc" placeholder="Line Item Description"><input type="number" required class="form-input line-item-amount w-32" placeholder="Amount">`;
+            quoteLineItems.appendChild(newItem);
+        });
+
+        quoteLineItems.addEventListener('input', updateQuoteTotal);
+        
+        addQuoteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const nextId = await getNextSequenceValue("quote");
+                const lineItems = [];
+                document.querySelectorAll('#quote-line-items .flex').forEach(item => {
+                    lineItems.push({
+                        description: item.querySelector('.line-item-desc').value,
+                        amount: Number(item.querySelector('.line-item-amount').value)
+                    });
+                });
+                const quoteData = {
+                    quoteId: `Q-${nextId}`,
+                    clientId: quoteClientSelect.value,
+                    createdAt: new Date(),
+                    lineItems: lineItems,
+                    total: parseFloat(quoteTotal.textContent.replace('$', ''))
+                };
+                await addDoc(collection(db, "quotes"), quoteData);
+                addQuoteForm.reset();
+                quoteLineItems.innerHTML = `<div class="flex gap-2"><input type="text" required class="form-input line-item-desc" placeholder="Line Item Description"><input type="number" required class="form-input line-item-amount w-32" placeholder="Amount"></div>`;
+                updateQuoteTotal();
+                alert(`Successfully created quote Q-${nextId}`);
+            } catch (error) { alert("Error adding quote: " + error.message); }
+        });
+
+        function listenForQuotes() {
+            onSnapshot(collection(db, "quotes"), (snapshot) => {
+                quoteList.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const quote = { id: doc.id, ...doc.data() };
+                    const quoteCard = document.createElement('div');
+                    quoteCard.className = 'bg-gray-700 p-3 rounded-lg';
+                    quoteCard.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-lg">${quote.quoteId}</h4>
+                            <span class="text-lg font-bold text-green-400">$${quote.total.toFixed(2)}</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mt-1">For Client: ${quote.clientId}</p>
+                        <p class="text-xs text-gray-400">Created: ${new Date(quote.createdAt.seconds * 1000).toLocaleDateString()}</p>
+                    `;
+                    quoteList.appendChild(quoteCard);
+                });
+            });
+        }
+
 
         // --- NAVIGATION ---
         mainNav.addEventListener('click', (e) => {
