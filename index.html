@@ -165,17 +165,7 @@
                                     <input id="new-user-name" type="text" required class="form-input" placeholder="Full Name">
                                     <input id="new-user-email" type="email" required class="form-input" placeholder="Email Address">
                                     <input id="new-user-password" type="password" required class="form-input" placeholder="Password (min. 6 characters)">
-                                    <select id="new-user-role" class="form-input">
-                                        <option value="Admin">Admin</option>
-                                        <option value="Team Member">Team Member</option>
-                                        <option value="Warehouse Manager">Warehouse Manager</option>
-                                        <option value="Warehouse Staff">Warehouse Staff</option>
-                                        <option value="Tech">Tech</option>
-                                        <option value="Jr Tech">Jr Tech</option>
-                                        <option value="Sales">Sales</option>
-                                        <option value="Driver">Driver</option>
-                                        <option value="Disabled">Disabled</option>
-                                    </select>
+                                    <select id="new-user-role" class="form-input"></select>
                                     <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Create User</button>
                                 </form>
                             </div>
@@ -200,7 +190,7 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { initializeApp, initializeApp as initializeSecondaryApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -223,7 +213,7 @@
         let currentUserName = null;
         let currentUserEmail = null;
         let deletionCallback = null;
-        const allRoles = ["Admin", "Team Member", "Warehouse Manager", "Warehouse Staff", "Tech", "Jr Tech", "Sales", "Driver", "Disabled"];
+        const allRoles = ["Admin", "Scheduler", "Team Member", "Warehouse Manager", "Warehouse Staff", "Tech", "Jr Tech", "Sales", "Driver", "Disabled"];
 
         // --- PERMISSIONS CONFIGURATION ---
         const permissions = {
@@ -232,6 +222,10 @@
                 canAddClient: true, canEditClient: true,
                 canAddInventory: true, canEditInventory: true,
                 canAddQuote: true, canAddJob: true
+            },
+            Scheduler: {
+                nav: ['dashboard-view', 'scheduling-view'],
+                canAddJob: true
             },
             Sales: {
                 nav: ['dashboard-view', 'client-central-view', 'sales-view'],
@@ -264,7 +258,7 @@
         };
 
         // --- DOM ELEMENTS ---
-        const loginView = document.getElementById('login-view'), mainAppView = document.getElementById('main-app-view'), adminNavLink = document.getElementById('admin-nav-link'), loginForm = document.getElementById('login-form'), logoutButton = document.getElementById('logout-button'), userDisplayName = document.getElementById('user-display-name'), userDisplayRole = document.getElementById('user-display-role'), mainNav = document.getElementById('mainNav'), createUserForm = document.getElementById('create-user-form'), userList = document.getElementById('user-list');
+        const loginView = document.getElementById('login-view'), mainAppView = document.getElementById('main-app-view'), adminNavLink = document.getElementById('admin-nav-link'), loginForm = document.getElementById('login-form'), logoutButton = document.getElementById('logout-button'), userDisplayName = document.getElementById('user-display-name'), userDisplayRole = document.getElementById('user-display-role'), mainNav = document.getElementById('mainNav'), createUserForm = document.getElementById('create-user-form'), userList = document.getElementById('user-list'), newUserRoleSelect = document.getElementById('new-user-role');
         const addClientForm = document.getElementById('add-client-form'), clientList = document.getElementById('client-list'), editClientModal = document.getElementById('edit-client-modal'), editClientForm = document.getElementById('edit-client-form'), closeEditClientModalBtn = document.getElementById('close-edit-client-modal-btn'), deleteClientBtn = document.getElementById('delete-client-btn'), modalClientId = document.getElementById('modal-client-id');
         const addItemForm = document.getElementById('add-item-form'), inventoryList = document.getElementById('inventory-list'), editItemModal = document.getElementById('edit-item-modal'), editItemForm = document.getElementById('edit-item-form'), closeEditItemModalBtn = document.getElementById('close-edit-item-modal-btn'), deleteItemBtn = document.getElementById('delete-item-btn'), modalItemId = document.getElementById('modal-item-id');
         const addQuoteForm = document.getElementById('add-quote-form'), quoteClientSelect = document.getElementById('quote-client'), quoteLineItems = document.getElementById('quote-line-items'), addLineItemBtn = document.getElementById('add-line-item-btn'), quoteTotal = document.getElementById('quote-total'), quoteList = document.getElementById('quote-list');
@@ -272,6 +266,13 @@
         const editUserModal = document.getElementById('edit-user-modal'), editUserForm = document.getElementById('edit-user-form'), closeEditUserModalBtn = document.getElementById('close-edit-user-modal-btn'), modalUserEmail = document.getElementById('modal-user-email');
         const adminOverrideModal = document.getElementById('admin-override-modal'), adminOverrideForm = document.getElementById('admin-override-form'), closeAdminOverrideModalBtn = document.getElementById('close-admin-override-modal-btn'), adminOverrideError = document.getElementById('admin-override-error');
         
+        // --- INITIAL SETUP ---
+        function populateRoleDropdowns() {
+            const roleOptions = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+            newUserRoleSelect.innerHTML = roleOptions;
+        }
+        populateRoleDropdowns();
+
         // --- AUTH & ROLE CHECK ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -312,7 +313,24 @@
         logoutButton.addEventListener('click', () => signOut(auth));
 
         // --- USER MANAGEMENT (ADMIN ONLY) ---
-        createUserForm.addEventListener('submit', async (e) => { e.preventDefault(); const { 'new-user-name': name, 'new-user-email': email, 'new-user-password': password, 'new-user-role': role } = createUserForm.elements; try { const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value); await setDoc(doc(db, "users", userCredential.user.uid), { name: name.value, email: email.value, role: role.value }); alert(`Successfully created user: ${name.value}`); createUserForm.reset(); } catch (error) { alert("Error: " + error.message); } });
+        createUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const { 'new-user-name': name, 'new-user-email': email, 'new-user-password': password, 'new-user-role': role } = createUserForm.elements;
+            
+            // Create a temporary, secondary app instance to create the user without logging them in
+            const secondaryApp = initializeSecondaryApp(firebaseConfig, `secondary-app-${Date.now()}`);
+            const secondaryAuth = getAuth(secondaryApp);
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email.value, password.value);
+                await setDoc(doc(db, "users", userCredential.user.uid), { name: name.value, email: email.value, role: role.value });
+                alert(`Successfully created user: ${name.value}`);
+                createUserForm.reset();
+            } catch (error) {
+                alert("Error creating user: " + error.message);
+            }
+        });
+
         function listenForUsers() { onSnapshot(collection(db, "users"), (snapshot) => { userList.innerHTML = ''; snapshot.forEach((doc) => { const user = { id: doc.id, ...doc.data() }; const userCard = document.createElement('div'); userCard.className = 'bg-gray-700 p-3 rounded-lg flex justify-between items-center'; userCard.innerHTML = `<div><p class="font-semibold">${user.name}</p><p class="text-xs text-gray-400">${user.email} - ${user.role}</p></div>`; if (currentUserRole === 'Admin') { const editBtn = document.createElement('button'); editBtn.className = 'text-sm text-green-400 hover:text-green-300'; editBtn.textContent = 'Edit'; editBtn.onclick = () => openEditUserModal(user); userCard.appendChild(editBtn); } userList.appendChild(userCard); }); }); }
         function openEditUserModal(user) { editUserForm['edit-user-id'].value = user.id; modalUserEmail.textContent = user.email; const roleSelect = editUserForm['edit-user-role']; roleSelect.innerHTML = allRoles.map(r => `<option value="${r}" ${r === user.role ? 'selected' : ''}>${r}</option>`).join(''); editUserModal.classList.remove('hidden'); }
         closeEditUserModalBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
@@ -361,4 +379,5 @@
         document.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', (e) => { const viewId = e.currentTarget.dataset.view; if(viewId) document.querySelector(`.nav-link[data-view="${viewId}"]`).click(); }); });
     </script>
 </body>
-</html>
+</html
+    
