@@ -220,6 +220,7 @@
 
         // --- GLOBAL STATE ---
         let currentUserRole = null;
+        let currentUserName = null;
         let currentUserEmail = null;
         let deletionCallback = null;
         const allRoles = ["Admin", "Team Member", "Warehouse Manager", "Warehouse Staff", "Tech", "Jr Tech", "Sales", "Driver", "Disabled"];
@@ -228,35 +229,36 @@
         const permissions = {
             Admin: {
                 nav: ['dashboard-view', 'client-central-view', 'inventory-view', 'sales-view', 'scheduling-view', 'admin-view'],
-                canAddClient: true, canEditClient: true, canDeleteClient: true,
-                canAddInventory: true, canEditInventory: true, canDeleteInventory: true,
-                canAddQuote: true, canAddJob: true, canEditUser: true
+                canAddClient: true, canEditClient: true,
+                canAddInventory: true, canEditInventory: true,
+                canAddQuote: true, canAddJob: true
             },
             Sales: {
                 nav: ['dashboard-view', 'client-central-view', 'sales-view'],
-                canAddClient: true, canEditClient: true, canDeleteClient: false,
+                canAddClient: true, canEditClient: true,
                 canAddQuote: true
             },
             'Warehouse Manager': {
                 nav: ['dashboard-view', 'inventory-view'],
-                canAddInventory: true, canEditInventory: true, canDeleteInventory: true
+                canAddInventory: true, canEditInventory: true
             },
             'Warehouse Staff': {
                 nav: ['dashboard-view', 'inventory-view'],
-                canAddInventory: true, canEditInventory: true, canDeleteInventory: false
+                canAddInventory: true, canEditInventory: true
             },
             Tech: {
                 nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
-                canEditInventory: false // Can view but not edit
+                canEditInventory: false
             },
             'Jr Tech': {
                 nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
                 canEditInventory: false
             },
             Driver: {
-                nav: ['dashboard-view', 'scheduling-view']
+                nav: ['dashboard-view', 'scheduling-view', 'inventory-view'],
+                canAddInventory: false, canEditInventory: false,
             },
-            'Team Member': { // Default fallback
+            'Team Member': {
                 nav: ['dashboard-view']
             }
         };
@@ -278,6 +280,7 @@
                     const userData = userDoc.data();
                     if (userData.role === 'Disabled') { alert("Your account has been disabled. Please contact an administrator."); signOut(auth); return; }
                     currentUserRole = userData.role;
+                    currentUserName = userData.name;
                     currentUserEmail = userData.email;
                     userDisplayName.textContent = userData.name;
                     userDisplayRole.textContent = userData.role;
@@ -286,35 +289,18 @@
                 loginView.style.display = 'none'; mainAppView.style.display = 'block';
                 listenForUsers(); listenForClients(); listenForInventory(); listenForQuotes(); listenForJobs();
             } else {
-                currentUserRole = null; currentUserEmail = null;
+                currentUserRole = null; currentUserEmail = null; currentUserName = null;
                 loginView.style.display = 'flex'; mainAppView.style.display = 'none';
             }
         });
         
         function applyPermissions(role) {
-            const userPermissions = permissions[role] || permissions['Team Member']; // Fallback to Team Member
-            
-            // Apply Nav permissions
-            document.querySelectorAll('#mainNav .nav-link').forEach(link => {
-                const view = link.dataset.view;
-                if (userPermissions.nav && userPermissions.nav.includes(view)) {
-                    link.style.display = 'block';
-                } else {
-                    link.style.display = 'none';
-                }
+            const userPermissions = permissions[role] || permissions['Team Member'];
+            document.querySelectorAll('#mainNav .nav-link, #dashboard-cards .module-card').forEach(el => {
+                const view = el.dataset.view;
+                if (userPermissions.nav && userPermissions.nav.includes(view)) { el.style.display = 'block'; } 
+                else { el.style.display = 'none'; }
             });
-
-            // Apply Dashboard Card permissions
-            document.querySelectorAll('#dashboard-cards .module-card').forEach(card => {
-                const view = card.dataset.view;
-                 if (userPermissions.nav && userPermissions.nav.includes(view)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            // Apply form visibility permissions
             document.getElementById('add-client-container').style.display = userPermissions.canAddClient ? 'block' : 'none';
             document.getElementById('add-item-container').style.display = userPermissions.canAddInventory ? 'block' : 'none';
             document.getElementById('add-quote-container').style.display = userPermissions.canAddQuote ? 'block' : 'none';
@@ -375,4 +361,4 @@
         document.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', (e) => { const viewId = e.currentTarget.dataset.view; if(viewId) document.querySelector(`.nav-link[data-view="${viewId}"]`).click(); }); });
     </script>
 </body>
-</html
+</html>
