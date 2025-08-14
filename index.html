@@ -59,7 +59,7 @@
                         <a href="#" data-view="inventory-view" class="nav-link text-white font-semibold hover:text-gray-300">Inventory</a>
                         <a href="#" data-view="sales-view" class="nav-link text-white font-semibold hover:text-gray-300">Sales</a>
                         <a href="#" data-view="scheduling-view" class="nav-link text-white font-semibold hover:text-gray-300">Scheduling</a>
-                        <a href="#" data-view="admin-view" id="admin-nav-link" class="nav-link text-white font-semibold hover:text-gray-300 hidden">Admin</a>
+                        <a href="#" data-view="admin-view" id="admin-nav-link" class="nav-link text-white font-semibold hover:text-gray-300">Admin</a>
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -76,7 +76,7 @@
                     
                     <div id="dashboard-view" class="module-view">
                         <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div id="dashboard-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                            <div class="module-card p-4 rounded-lg cursor-pointer" data-view="client-central-view"><h3 class="font-bold text-lg">Client Central</h3><p class="text-sm text-gray-400">Manage clients and leads.</p></div>
                            <div class="module-card p-4 rounded-lg cursor-pointer" data-view="inventory-view"><h3 class="font-bold text-lg">Inventory</h3><p class="text-sm text-gray-400">Track equipment and stock.</p></div>
                            <div class="module-card p-4 rounded-lg cursor-pointer" data-view="sales-view"><h3 class="font-bold text-lg">Sales Quoting</h3><p class="text-sm text-gray-400">Create and send quotes.</p></div>
@@ -87,7 +87,7 @@
                     <div id="client-central-view" class="module-view hidden-view">
                         <h2 class="text-3xl font-bold mb-6">Client Central</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1">
+                            <div id="add-client-container" class="md:col-span-1">
                                 <h3 class="text-xl font-semibold mb-4">Add New Client</h3>
                                 <form id="add-client-form" class="space-y-4">
                                     <input id="client-name" type="text" required class="form-input" placeholder="Client Name">
@@ -107,7 +107,7 @@
                     <div id="inventory-view" class="module-view hidden-view">
                         <h2 class="text-3xl font-bold mb-6">Inventory</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1">
+                            <div id="add-item-container" class="md:col-span-1">
                                 <h3 class="text-xl font-semibold mb-4">Add New Item</h3>
                                 <form id="add-item-form" class="space-y-4">
                                     <input id="item-name" type="text" required class="form-input" placeholder="Item Name">
@@ -127,7 +127,7 @@
                     <div id="sales-view" class="module-view hidden-view">
                         <h2 class="text-3xl font-bold mb-6">Sales Quoting</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="md:col-span-1">
+                            <div id="add-quote-container" class="md:col-span-1">
                                 <h3 class="text-xl font-semibold mb-4">Create New Quote</h3>
                                 <form id="add-quote-form" class="space-y-4">
                                     <select id="quote-client" required class="form-input"></select>
@@ -221,8 +221,45 @@
         // --- GLOBAL STATE ---
         let currentUserRole = null;
         let currentUserEmail = null;
-        let deletionCallback = null; // Stores the function to run after admin approval
+        let deletionCallback = null;
         const allRoles = ["Admin", "Team Member", "Warehouse Manager", "Warehouse Staff", "Tech", "Jr Tech", "Sales", "Driver", "Disabled"];
+
+        // --- PERMISSIONS CONFIGURATION ---
+        const permissions = {
+            Admin: {
+                nav: ['dashboard-view', 'client-central-view', 'inventory-view', 'sales-view', 'scheduling-view', 'admin-view'],
+                canAddClient: true, canEditClient: true, canDeleteClient: true,
+                canAddInventory: true, canEditInventory: true, canDeleteInventory: true,
+                canAddQuote: true, canAddJob: true, canEditUser: true
+            },
+            Sales: {
+                nav: ['dashboard-view', 'client-central-view', 'sales-view'],
+                canAddClient: true, canEditClient: true, canDeleteClient: false,
+                canAddQuote: true
+            },
+            'Warehouse Manager': {
+                nav: ['dashboard-view', 'inventory-view'],
+                canAddInventory: true, canEditInventory: true, canDeleteInventory: true
+            },
+            'Warehouse Staff': {
+                nav: ['dashboard-view', 'inventory-view'],
+                canAddInventory: true, canEditInventory: true, canDeleteInventory: false
+            },
+            Tech: {
+                nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
+                canEditInventory: false // Can view but not edit
+            },
+            'Jr Tech': {
+                nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
+                canEditInventory: false
+            },
+            Driver: {
+                nav: ['dashboard-view', 'scheduling-view']
+            },
+            'Team Member': { // Default fallback
+                nav: ['dashboard-view']
+            }
+        };
 
         // --- DOM ELEMENTS ---
         const loginView = document.getElementById('login-view'), mainAppView = document.getElementById('main-app-view'), adminNavLink = document.getElementById('admin-nav-link'), loginForm = document.getElementById('login-form'), logoutButton = document.getElementById('logout-button'), userDisplayName = document.getElementById('user-display-name'), userDisplayRole = document.getElementById('user-display-role'), mainNav = document.getElementById('mainNav'), createUserForm = document.getElementById('create-user-form'), userList = document.getElementById('user-list');
@@ -244,7 +281,7 @@
                     currentUserEmail = userData.email;
                     userDisplayName.textContent = userData.name;
                     userDisplayRole.textContent = userData.role;
-                    if (userData.role === 'Admin') adminNavLink.classList.remove('hidden'); else adminNavLink.classList.add('hidden');
+                    applyPermissions(currentUserRole);
                 }
                 loginView.style.display = 'none'; mainAppView.style.display = 'block';
                 listenForUsers(); listenForClients(); listenForInventory(); listenForQuotes(); listenForJobs();
@@ -253,6 +290,36 @@
                 loginView.style.display = 'flex'; mainAppView.style.display = 'none';
             }
         });
+        
+        function applyPermissions(role) {
+            const userPermissions = permissions[role] || permissions['Team Member']; // Fallback to Team Member
+            
+            // Apply Nav permissions
+            document.querySelectorAll('#mainNav .nav-link').forEach(link => {
+                const view = link.dataset.view;
+                if (userPermissions.nav && userPermissions.nav.includes(view)) {
+                    link.style.display = 'block';
+                } else {
+                    link.style.display = 'none';
+                }
+            });
+
+            // Apply Dashboard Card permissions
+            document.querySelectorAll('#dashboard-cards .module-card').forEach(card => {
+                const view = card.dataset.view;
+                 if (userPermissions.nav && userPermissions.nav.includes(view)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Apply form visibility permissions
+            document.getElementById('add-client-container').style.display = userPermissions.canAddClient ? 'block' : 'none';
+            document.getElementById('add-item-container').style.display = userPermissions.canAddInventory ? 'block' : 'none';
+            document.getElementById('add-quote-container').style.display = userPermissions.canAddQuote ? 'block' : 'none';
+            document.getElementById('add-job-btn').style.display = userPermissions.canAddJob ? 'block' : 'none';
+        }
 
         // --- LOGIN/LOGOUT ---
         loginForm.addEventListener('submit', (e) => { e.preventDefault(); signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value).catch((error) => alert("Error: " + error.message)); });
@@ -267,32 +334,7 @@
 
         // --- ADMIN OVERRIDE FOR DELETION ---
         closeAdminOverrideModalBtn.addEventListener('click', () => adminOverrideModal.classList.add('hidden'));
-        adminOverrideForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const password = adminOverrideForm['admin-override-password'].value;
-            adminOverrideError.classList.add('hidden');
-            if (!currentUserEmail) { adminOverrideError.textContent = "Current user not found."; adminOverrideError.classList.remove('hidden'); return; }
-            
-            const credential = EmailAuthProvider.credential(currentUserEmail, password);
-            try {
-                await reauthenticateWithCredential(auth.currentUser, credential);
-                // Re-authentication successful, now check if the re-authenticated user is an admin
-                const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-                if (userDoc.exists() && userDoc.data().role === 'Admin') {
-                    if (deletionCallback) {
-                        deletionCallback(); // Run the stored deletion function
-                    }
-                    adminOverrideModal.classList.add('hidden');
-                    adminOverrideForm.reset();
-                } else {
-                    adminOverrideError.textContent = "Approval failed: User is not an admin.";
-                    adminOverrideError.classList.remove('hidden');
-                }
-            } catch (error) {
-                adminOverrideError.textContent = "Incorrect password. Approval denied.";
-                adminOverrideError.classList.remove('hidden');
-            }
-        });
+        adminOverrideForm.addEventListener('submit', async (e) => { e.preventDefault(); const password = adminOverrideForm['admin-override-password'].value; adminOverrideError.classList.add('hidden'); if (!currentUserEmail) { adminOverrideError.textContent = "Current user not found."; adminOverrideError.classList.remove('hidden'); return; } const credential = EmailAuthProvider.credential(currentUserEmail, password); try { await reauthenticateWithCredential(auth.currentUser, credential); const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid)); if (userDoc.exists() && userDoc.data().role === 'Admin') { if (deletionCallback) { deletionCallback(); } adminOverrideModal.classList.add('hidden'); adminOverrideForm.reset(); } else { adminOverrideError.textContent = "Approval failed: User is not an admin."; adminOverrideError.classList.remove('hidden'); } } catch (error) { adminOverrideError.textContent = "Incorrect password. Approval denied."; adminOverrideError.classList.remove('hidden'); } });
 
         // --- SEQUENTIAL ID GENERATOR ---
         async function getNextSequenceValue(sequenceName) { const counterRef = doc(db, "counters", sequenceName); let nextId; await runTransaction(db, async (transaction) => { const counterDoc = await transaction.get(counterRef); if (!counterDoc.exists()) { nextId = 100001; transaction.set(counterRef, { current_value: nextId }); } else { nextId = counterDoc.data().current_value + 1; transaction.update(counterRef, { current_value: nextId }); } }); return nextId; }
@@ -303,17 +345,7 @@
         function openEditClientModal(client) { editClientForm['edit-client-id'].value = client.id; editClientForm['edit-client-name'].value = client.name; editClientForm['edit-client-contact'].value = client.contact; editClientForm['edit-client-email'].value = client.email; editClientForm['edit-client-status'].value = client.status; modalClientId.textContent = `Client ID: ${client.clientId || 'N/A'}`; editClientModal.classList.remove('hidden'); editClientModal.classList.add('flex'); }
         closeEditClientModalBtn.addEventListener('click', () => { editClientModal.classList.add('hidden'); editClientModal.classList.remove('flex'); });
         editClientForm.addEventListener('submit', async (e) => { e.preventDefault(); const { 'edit-client-id': id, 'edit-client-name': name, 'edit-client-contact': contact, 'edit-client-email': email, 'edit-client-status': status } = editClientForm.elements; try { await updateDoc(doc(db, "clients", id.value), { name: name.value, contact: contact.value, email: email.value, status: status.value }); closeEditClientModalBtn.click(); } catch (error) { alert("Error updating client: " + error.message); } });
-        deleteClientBtn.addEventListener('click', async () => {
-            const clientId = editClientForm['edit-client-id'].value;
-            const performDelete = async () => {
-                try {
-                    await deleteDoc(doc(db, "clients", clientId));
-                    closeEditClientModalBtn.click();
-                } catch (error) { alert("Error deleting client: " + error.message); }
-            };
-            if (currentUserRole === 'Admin') { if (confirm("Are you sure you want to delete this client?")) { performDelete(); } } 
-            else { deletionCallback = performDelete; adminOverrideModal.classList.remove('hidden'); }
-        });
+        deleteClientBtn.addEventListener('click', async () => { const clientId = editClientForm['edit-client-id'].value; const performDelete = async () => { try { await deleteDoc(doc(db, "clients", clientId)); closeEditClientModalBtn.click(); } catch (error) { alert("Error deleting client: " + error.message); } }; if (currentUserRole === 'Admin') { if (confirm("Are you sure you want to delete this client?")) { performDelete(); } } else { deletionCallback = performDelete; adminOverrideModal.classList.remove('hidden'); } });
 
         // --- INVENTORY LOGIC ---
         addItemForm.addEventListener('submit', async (e) => { e.preventDefault(); const { 'item-name': name, 'item-category': category, 'item-quantity': quantity, 'item-status': status } = addItemForm.elements; try { const nextId = await getNextSequenceValue("inventory"); await addDoc(collection(db, "inventory"), { itemId: `INV-${nextId}`, name: name.value, category: category.value, quantity: Number(quantity.value), status: status.value }); addItemForm.reset(); } catch (error) { alert("Error adding item: " + error.message); } });
@@ -321,17 +353,7 @@
         function openEditItemModal(item) { editItemForm['edit-item-id'].value = item.id; editItemForm['edit-item-name'].value = item.name; editItemForm['edit-item-category'].value = item.category; editItemForm['edit-item-quantity'].value = item.quantity; editItemForm['edit-item-status'].value = item.status; modalItemId.textContent = `Item ID: ${item.itemId || 'N/A'}`; editItemModal.classList.remove('hidden'); editItemModal.classList.add('flex'); }
         closeEditItemModalBtn.addEventListener('click', () => { editItemModal.classList.add('hidden'); editItemModal.classList.remove('flex'); });
         editItemForm.addEventListener('submit', async (e) => { e.preventDefault(); const { 'edit-item-id': id, 'edit-item-name': name, 'edit-item-category': category, 'edit-item-quantity': quantity, 'edit-item-status': status } = editItemForm.elements; try { await updateDoc(doc(db, "inventory", id.value), { name: name.value, category: category.value, quantity: Number(quantity.value), status: status.value }); closeEditItemModalBtn.click(); } catch (error) { alert("Error updating item: " + error.message); } });
-        deleteItemBtn.addEventListener('click', async () => {
-            const itemId = editItemForm['edit-item-id'].value;
-            const performDelete = async () => {
-                try {
-                    await deleteDoc(doc(db, "inventory", itemId));
-                    closeEditItemModalBtn.click();
-                } catch (error) { alert("Error deleting item: " + error.message); }
-            };
-            if (currentUserRole === 'Admin') { if (confirm("Are you sure you want to delete this item?")) { performDelete(); } }
-            else { deletionCallback = performDelete; adminOverrideModal.classList.remove('hidden'); }
-        });
+        deleteItemBtn.addEventListener('click', async () => { const itemId = editItemForm['edit-item-id'].value; const performDelete = async () => { try { await deleteDoc(doc(db, "inventory", itemId)); closeEditItemModalBtn.click(); } catch (error) { alert("Error deleting item: " + error.message); } }; if (currentUserRole === 'Admin') { if (confirm("Are you sure you want to delete this item?")) { performDelete(); } } else { deletionCallback = performDelete; adminOverrideModal.classList.remove('hidden'); } });
 
         // --- SALES QUOTING LOGIC ---
         function updateQuoteTotal() { let total = 0; document.querySelectorAll('.line-item-amount').forEach(input => { total += Number(input.value) || 0; }); quoteTotal.textContent = `$${total.toFixed(2)}`; }
@@ -353,4 +375,4 @@
         document.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', (e) => { const viewId = e.currentTarget.dataset.view; if(viewId) document.querySelector(`.nav-link[data-view="${viewId}"]`).click(); }); });
     </script>
 </body>
-</html>
+</html
