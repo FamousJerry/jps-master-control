@@ -25,7 +25,7 @@
     <div id="app-container">
 
         <!-- LOGIN VIEW -->
-        <div id="login-view" class="flex items-center justify-center min-h-screen hidden-view">
+        <div id="login-view" class="flex items-center justify-center min-h-screen">
             <div class="w-full max-w-md p-8 space-y-8 rounded-lg" style="background-color: rgba(0, 0, 0, 0.8);">
                 <div class="text-center">
                     <h1 class="text-3xl font-bold logo-neon mb-2">Jingjai Productions</h1>
@@ -60,7 +60,7 @@
                         <a href="#" data-view="dashboard-view" class="nav-link text-white font-semibold hover:text-gray-300 active-nav">Dashboard</a>
                         <a href="#" data-view="crm-view" class="nav-link text-white font-semibold hover:text-gray-300">CRM</a>
                         <a href="#" data-view="inventory-view" class="nav-link text-white font-semibold hover:text-gray-300">Inventory</a>
-                        <a href="#" data-view="admin-view" class="nav-link text-white font-semibold hover:text-gray-300">Admin</a>
+                        <a href="#" data-view="admin-view" id="admin-nav-link" class="nav-link text-white font-semibold hover:text-gray-300 hidden">Admin</a>
                     </nav>
                 </div>
                 <div class="flex items-center space-x-4">
@@ -118,7 +118,7 @@
                                     <div id="create-user-success" class="text-green-500 text-sm hidden"></div>
                                     <input id="new-user-name" type="text" required class="form-input" placeholder="Full Name">
                                     <input id="new-user-email" type="email" required class="form-input" placeholder="Email Address">
-                                    <input id="new-user-password" type="password" required class="form-input" placeholder="Password">
+                                    <input id="new-user-password" type="password" required class="form-input" placeholder="Password (min. 6 characters)">
                                     <select id="new-user-role" class="form-input">
                                         <option value="Team Member">Team Member</option>
                                         <option value="Admin">Admin</option>
@@ -142,20 +142,19 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         // Your web app's Firebase configuration
-        // IMPORTANT: Replace this with your actual Firebase config object
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "jps-app-468911", // Your Project ID is correct here
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
+            authDomain: "jps-app-468911.firebaseapp.com",
+            projectId: "jps-app-468911",
+            storageBucket: "jps-app-468911.appspot.com",
+            messagingSenderId: "532726782263",
+            appId: "1:532726782263:web:0e227d27bc61ef719962b2",
+            measurementId: "G-8HXP33E0S8"
         };
 
         // Initialize Firebase
@@ -166,46 +165,48 @@
         // --- DOM ELEMENTS ---
         const loginView = document.getElementById('login-view');
         const mainAppView = document.getElementById('main-app-view');
+        const adminNavLink = document.getElementById('admin-nav-link');
         const loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error');
         const logoutButton = document.getElementById('logout-button');
         const userDisplayName = document.getElementById('user-display-name');
         const userDisplayRole = document.getElementById('user-display-role');
         const mainNav = document.getElementById('mainNav');
-        const moduleContainer = document.getElementById('module-container');
         const createUserForm = document.getElementById('create-user-form');
         const createUserError = document.getElementById('create-user-error');
         const createUserSuccess = document.getElementById('create-user-success');
         const userList = document.getElementById('user-list');
 
-        // --- AUTHENTICATION LOGIC ---
-        
-        // Listen for authentication state changes
+        // --- AUTHENTICATION & ROLE CHECK ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is logged in
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     userDisplayName.textContent = userData.name;
                     userDisplayRole.textContent = userData.role;
+                    
+                    // Show/Hide Admin link based on user role
+                    if (userData.role === 'Admin') {
+                        adminNavLink.classList.remove('hidden');
+                    } else {
+                        adminNavLink.classList.add('hidden');
+                    }
                 }
-                loginView.classList.add('hidden-view');
-                mainAppView.classList.remove('hidden-view');
-                listenForUsers(); // Start listening for user list changes
+                loginView.style.display = 'none';
+                mainAppView.style.display = 'block';
+                listenForUsers();
             } else {
-                // User is logged out
-                loginView.classList.remove('hidden-view');
-                mainAppView.classList.add('hidden-view');
+                loginView.style.display = 'flex';
+                mainAppView.style.display = 'none';
             }
         });
 
-        // Handle login form submission
+        // --- LOGIN/LOGOUT ---
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-
             signInWithEmailAndPassword(auth, email, password)
                 .catch((error) => {
                     loginError.textContent = "Error: " + error.message;
@@ -213,14 +214,9 @@
                 });
         });
 
-        // Handle logout
-        logoutButton.addEventListener('click', () => {
-            signOut(auth);
-        });
+        logoutButton.addEventListener('click', () => signOut(auth));
 
-        // --- USER MANAGEMENT LOGIC ---
-
-        // Handle create user form submission
+        // --- USER MANAGEMENT (ADMIN ONLY) ---
         createUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('new-user-name').value;
@@ -232,35 +228,25 @@
             createUserSuccess.classList.add('hidden');
 
             try {
-                // IMPORTANT: Firebase doesn't let you create users this way from the client-side
-                // for security reasons. This is a placeholder. In a real app, this would be
-                // handled by a secure backend function. For now, we'll just add to the database.
-                // We will simulate the user creation by adding them to our 'users' collection.
-                // You would need to create the actual user in the Firebase Console.
-                
-                // This is a simplified example. A real app would need a secure way to do this.
-                // For now, we will just add the user profile to Firestore.
-                // You will need to create the user in the Firebase Auth console manually.
-                
-                // We'll use a placeholder UID for this example.
-                const placeholderUid = "user_" + Date.now();
-                await setDoc(doc(db, "users", placeholderUid), { name, email, role });
+                // Step 1: Create the user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const newUser = userCredential.user;
 
-                createUserSuccess.textContent = "User profile created in database. Please create their login in the Firebase Console.";
+                // Step 2: Create a corresponding user profile in Firestore
+                await setDoc(doc(db, "users", newUser.uid), { name, email, role });
+
+                createUserSuccess.textContent = `Successfully created user: ${name}`;
                 createUserSuccess.classList.remove('hidden');
                 createUserForm.reset();
-
             } catch (error) {
                 createUserError.textContent = "Error: " + error.message;
                 createUserError.classList.remove('hidden');
             }
         });
 
-        // Listen for real-time updates to the user list
         function listenForUsers() {
-            const usersCollection = collection(db, "users");
-            onSnapshot(usersCollection, (snapshot) => {
-                userList.innerHTML = ''; // Clear the list
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                userList.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const userData = doc.data();
                     const userElement = document.createElement('div');
@@ -269,42 +255,30 @@
                         <div>
                             <p class="font-semibold">${userData.name}</p>
                             <p class="text-xs text-gray-400">${userData.email} - ${userData.role}</p>
-                        </div>
-                    `;
+                        </div>`;
                     userList.appendChild(userElement);
                 });
             });
         }
 
-
-        // --- NAVIGATION LOGIC ---
+        // --- NAVIGATION ---
         mainNav.addEventListener('click', (e) => {
             if (e.target.classList.contains('nav-link')) {
                 e.preventDefault();
                 const viewId = e.target.dataset.view;
-                
-                // Hide all module views
-                document.querySelectorAll('.module-view').forEach(view => view.classList.add('hidden-view'));
-                
-                // Show the selected module view
+                document.querySelectorAll('.module-view').forEach(v => v.classList.add('hidden-view'));
                 document.getElementById(viewId).classList.remove('hidden-view');
-
-                // Update active nav link
-                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active-nav'));
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active-nav'));
                 e.target.classList.add('active-nav');
             }
         });
         
-        // Handle clicking on dashboard cards to navigate
         document.querySelectorAll('.module-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 const viewId = e.currentTarget.dataset.view;
-                if(viewId) {
-                    document.querySelector(`.nav-link[data-view="${viewId}"]`).click();
-                }
+                if(viewId) document.querySelector(`.nav-link[data-view="${viewId}"]`).click();
             });
         });
-
     </script>
 </body>
 </html>
