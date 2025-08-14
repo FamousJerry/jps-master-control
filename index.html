@@ -60,6 +60,8 @@
                         <a href="#" data-view="dashboard-view" class="nav-link text-white font-semibold hover:text-gray-300 active-nav">Dashboard</a>
                         <a href="#" data-view="crm-view" class="nav-link text-white font-semibold hover:text-gray-300">CRM</a>
                         <a href="#" data-view="inventory-view" class="nav-link text-white font-semibold hover:text-gray-300">Inventory</a>
+                        <a href="#" data-view="sales-view" class="nav-link text-white font-semibold hover:text-gray-300">Sales</a>
+                        <a href="#" data-view="scheduling-view" class="nav-link text-white font-semibold hover:text-gray-300">Scheduling</a>
                         <a href="#" data-view="admin-view" id="admin-nav-link" class="nav-link text-white font-semibold hover:text-gray-300 hidden">Admin</a>
                     </nav>
                 </div>
@@ -86,10 +88,10 @@
                            <div class="module-card p-4 rounded-lg cursor-pointer" data-view="inventory-view">
                                <h3 class="font-bold text-lg">Inventory</h3><p class="text-sm text-gray-400">Track equipment and stock.</p>
                            </div>
-                           <div class="module-card p-4 rounded-lg cursor-pointer">
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="sales-view">
                                <h3 class="font-bold text-lg">Sales Quoting</h3><p class="text-sm text-gray-400">Create and send quotes.</p>
                            </div>
-                           <div class="module-card p-4 rounded-lg cursor-pointer">
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="scheduling-view">
                                <h3 class="font-bold text-lg">Job Scheduling</h3><p class="text-sm text-gray-400">Coordinate your team.</p>
                            </div>
                         </div>
@@ -97,14 +99,26 @@
 
                     <!-- CRM View (Placeholder) -->
                     <div id="crm-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">CRM Module</h2>
-                        <p class="text-gray-400 mt-4">This is where the Customer Relationship Management module will live.</p>
+                        <h2 class="text-3xl font-bold">CRM</h2>
+                        <p class="text-gray-400 mt-4">This is where the Customer Relationship Management section will live.</p>
                     </div>
 
                     <!-- Inventory View (Placeholder) -->
                     <div id="inventory-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">Inventory Module</h2>
-                        <p class="text-gray-400 mt-4">This is where the Inventory Control module will live.</p>
+                        <h2 class="text-3xl font-bold">Inventory</h2>
+                        <p class="text-gray-400 mt-4">This is where the Inventory Control section will live.</p>
+                    </div>
+                    
+                    <!-- Sales View (Placeholder) -->
+                    <div id="sales-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold">Sales Quoting</h2>
+                        <p class="text-gray-400 mt-4">This is where the Sales Quoting section will live.</p>
+                    </div>
+
+                    <!-- Scheduling View (Placeholder) -->
+                    <div id="scheduling-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold">Job Scheduling</h2>
+                        <p class="text-gray-400 mt-4">This is where the Job Scheduling section will live.</p>
                     </div>
 
                     <!-- Admin / User Management View -->
