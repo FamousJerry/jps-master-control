@@ -17,11 +17,12 @@
         .module-card { background-color: #2F2F2F; transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .module-card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .hidden-view { display: none; }
+        .modal { background-color: rgba(0,0,0,0.75); }
+        .modal-content { background-color: #181818; }
     </style>
 </head>
 <body>
 
-    <!-- This container holds the entire application. We will show/hide views inside it. -->
     <div id="app-container">
 
         <!-- LOGIN VIEW -->
@@ -33,22 +34,14 @@
                 </div>
                 <form id="login-form" class="space-y-6">
                     <div id="login-error" class="text-red-500 text-sm text-center hidden"></div>
-                    <div>
-                        <input id="login-email" type="email" required class="form-input" placeholder="Email address">
-                    </div>
-                    <div>
-                        <input id="login-password" type="password" required class="form-input" placeholder="Password">
-                    </div>
-                    <div>
-                        <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-sm font-bold text-white action-button">
-                            Sign in
-                        </button>
-                    </div>
+                    <input id="login-email" type="email" required class="form-input" placeholder="Email address">
+                    <input id="login-password" type="password" required class="form-input" placeholder="Password">
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 rounded-md text-sm font-bold text-white action-button">Sign in</button>
                 </form>
             </div>
         </div>
 
-        <!-- MAIN APPLICATION VIEW (Dashboard, Modules, etc.) -->
+        <!-- MAIN APPLICATION VIEW -->
         <div id="main-app-view" class="hidden-view">
             <header class="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center">
                 <div class="flex items-center space-x-4 md:space-x-8">
@@ -75,53 +68,50 @@
             </header>
 
             <main class="pt-24 px-4 md:px-8">
-                <!-- This is where the different module views will be shown -->
                 <div id="module-container">
                     
                     <!-- Dashboard View -->
                     <div id="dashboard-view" class="module-view">
                         <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="client-central-view">
-                               <h3 class="font-bold text-lg">Client Central</h3><p class="text-sm text-gray-400">Manage clients and leads.</p>
-                           </div>
-                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="inventory-view">
-                               <h3 class="font-bold text-lg">Inventory</h3><p class="text-sm text-gray-400">Track equipment and stock.</p>
-                           </div>
-                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="sales-view">
-                               <h3 class="font-bold text-lg">Sales Quoting</h3><p class="text-sm text-gray-400">Create and send quotes.</p>
-                           </div>
-                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="scheduling-view">
-                               <h3 class="font-bold text-lg">Job Scheduling</h3><p class="text-sm text-gray-400">Coordinate your team.</p>
-                           </div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="client-central-view"><h3 class="font-bold text-lg">Client Central</h3><p class="text-sm text-gray-400">Manage clients and leads.</p></div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="inventory-view"><h3 class="font-bold text-lg">Inventory</h3><p class="text-sm text-gray-400">Track equipment and stock.</p></div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="sales-view"><h3 class="font-bold text-lg">Sales Quoting</h3><p class="text-sm text-gray-400">Create and send quotes.</p></div>
+                           <div class="module-card p-4 rounded-lg cursor-pointer" data-view="scheduling-view"><h3 class="font-bold text-lg">Job Scheduling</h3><p class="text-sm text-gray-400">Coordinate your team.</p></div>
                         </div>
                     </div>
 
-                    <!-- Client Central View (Placeholder) -->
+                    <!-- Client Central View -->
                     <div id="client-central-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">Client Central</h2>
-                        <p class="text-gray-400 mt-4">This is where the Client Central section will live.</p>
+                        <h2 class="text-3xl font-bold mb-6">Client Central</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-1">
+                                <h3 class="text-xl font-semibold mb-4">Add New Client</h3>
+                                <form id="add-client-form" class="space-y-4">
+                                    <input id="client-name" type="text" required class="form-input" placeholder="Client Name">
+                                    <input id="client-contact" type="text" required class="form-input" placeholder="Primary Contact">
+                                    <input id="client-email" type="email" required class="form-input" placeholder="Contact Email">
+                                    <select id="client-status" class="form-input">
+                                        <option>Lead</option><option>Active</option><option>On Hold</option><option>Archived</option>
+                                    </select>
+                                    <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Add Client</button>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2">
+                                <h3 class="text-xl font-semibold mb-4">Current Clients</h3>
+                                <div id="client-list" class="space-y-3">
+                                    <!-- Client list will be populated here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Inventory View (Placeholder) -->
-                    <div id="inventory-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">Inventory</h2>
-                        <p class="text-gray-400 mt-4">This is where the Inventory Control section will live.</p>
-                    </div>
-                    
-                    <!-- Sales View (Placeholder) -->
-                    <div id="sales-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">Sales Quoting</h2>
-                        <p class="text-gray-400 mt-4">This is where the Sales Quoting section will live.</p>
-                    </div>
+                    <div id="inventory-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Inventory</h2><p class="text-gray-400 mt-4">This is where the Inventory Control section will live.</p></div>
+                    <div id="sales-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Sales Quoting</h2><p class="text-gray-400 mt-4">This is where the Sales Quoting section will live.</p></div>
+                    <div id="scheduling-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Job Scheduling</h2><p class="text-gray-400 mt-4">This is where the Job Scheduling section will live.</p></div>
 
-                    <!-- Scheduling View (Placeholder) -->
-                    <div id="scheduling-view" class="module-view hidden-view">
-                        <h2 class="text-3xl font-bold">Job Scheduling</h2>
-                        <p class="text-gray-400 mt-4">This is where the Job Scheduling section will live.</p>
-                    </div>
-
-                    <!-- Admin / User Management View -->
+                    <!-- Admin View -->
                     <div id="admin-view" class="module-view hidden-view">
                         <h2 class="text-3xl font-bold mb-6">Admin: User Management</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -133,34 +123,54 @@
                                     <input id="new-user-name" type="text" required class="form-input" placeholder="Full Name">
                                     <input id="new-user-email" type="email" required class="form-input" placeholder="Email Address">
                                     <input id="new-user-password" type="password" required class="form-input" placeholder="Password (min. 6 characters)">
-                                    <select id="new-user-role" class="form-input">
-                                        <option value="Team Member">Team Member</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
+                                    <select id="new-user-role" class="form-input"><option value="Team Member">Team Member</option><option value="Admin">Admin</option></select>
                                     <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Create User</button>
                                 </form>
                             </div>
                             <div>
                                 <h3 class="text-xl font-semibold mb-4">Current Users</h3>
-                                <div id="user-list" class="space-y-2">
-                                    <!-- User list will be populated here -->
-                                </div>
+                                <div id="user-list" class="space-y-2"></div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </main>
         </div>
     </div>
+    
+    <!-- Edit Client Modal -->
+    <div id="edit-client-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal">
+        <div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-2xl font-bold">Edit Client</h3>
+                    <button id="close-edit-modal-btn" class="text-2xl">&times;</button>
+                </div>
+                <div class="my-4 border-t border-gray-700"></div>
+                <form id="edit-client-form" class="space-y-4">
+                    <input id="edit-client-id" type="hidden">
+                    <input id="edit-client-name" type="text" required class="form-input" placeholder="Client Name">
+                    <input id="edit-client-contact" type="text" required class="form-input" placeholder="Primary Contact">
+                    <input id="edit-client-email" type="email" required class="form-input" placeholder="Contact Email">
+                    <select id="edit-client-status" class="form-input">
+                        <option>Lead</option><option>Active</option><option>On Hold</option><option>Archived</option>
+                    </select>
+                    <div class="flex justify-between items-center pt-4">
+                        <button id="delete-client-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button>
+                        <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
             authDomain: "jps-app-468911.firebaseapp.com",
@@ -171,7 +181,6 @@
             measurementId: "G-8HXP33E0S8"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -181,17 +190,20 @@
         const mainAppView = document.getElementById('main-app-view');
         const adminNavLink = document.getElementById('admin-nav-link');
         const loginForm = document.getElementById('login-form');
-        const loginError = document.getElementById('login-error');
         const logoutButton = document.getElementById('logout-button');
         const userDisplayName = document.getElementById('user-display-name');
         const userDisplayRole = document.getElementById('user-display-role');
         const mainNav = document.getElementById('mainNav');
         const createUserForm = document.getElementById('create-user-form');
-        const createUserError = document.getElementById('create-user-error');
-        const createUserSuccess = document.getElementById('create-user-success');
         const userList = document.getElementById('user-list');
-
-        // --- AUTHENTICATION & ROLE CHECK ---
+        const addClientForm = document.getElementById('add-client-form');
+        const clientList = document.getElementById('client-list');
+        const editClientModal = document.getElementById('edit-client-modal');
+        const editClientForm = document.getElementById('edit-client-form');
+        const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+        const deleteClientBtn = document.getElementById('delete-client-btn');
+        
+        // --- AUTH & ROLE CHECK ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -199,17 +211,13 @@
                     const userData = userDoc.data();
                     userDisplayName.textContent = userData.name;
                     userDisplayRole.textContent = userData.role;
-                    
-                    // Show/Hide Admin link based on user role
-                    if (userData.role === 'Admin') {
-                        adminNavLink.classList.remove('hidden');
-                    } else {
-                        adminNavLink.classList.add('hidden');
-                    }
+                    if (userData.role === 'Admin') adminNavLink.classList.remove('hidden');
+                    else adminNavLink.classList.add('hidden');
                 }
                 loginView.style.display = 'none';
                 mainAppView.style.display = 'block';
                 listenForUsers();
+                listenForClients();
             } else {
                 loginView.style.display = 'flex';
                 mainAppView.style.display = 'none';
@@ -222,12 +230,8 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             signInWithEmailAndPassword(auth, email, password)
-                .catch((error) => {
-                    loginError.textContent = "Error: " + error.message;
-                    loginError.classList.remove('hidden');
-                });
+                .catch((error) => alert("Error: " + error.message));
         });
-
         logoutButton.addEventListener('click', () => signOut(auth));
 
         // --- USER MANAGEMENT (ADMIN ONLY) ---
@@ -237,24 +241,13 @@
             const email = document.getElementById('new-user-email').value;
             const password = document.getElementById('new-user-password').value;
             const role = document.getElementById('new-user-role').value;
-            
-            createUserError.classList.add('hidden');
-            createUserSuccess.classList.add('hidden');
-
             try {
-                // Step 1: Create the user in Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const newUser = userCredential.user;
-
-                // Step 2: Create a corresponding user profile in Firestore
-                await setDoc(doc(db, "users", newUser.uid), { name, email, role });
-
-                createUserSuccess.textContent = `Successfully created user: ${name}`;
-                createUserSuccess.classList.remove('hidden');
+                await setDoc(doc(db, "users", userCredential.user.uid), { name, email, role });
+                alert(`Successfully created user: ${name}`);
                 createUserForm.reset();
             } catch (error) {
-                createUserError.textContent = "Error: " + error.message;
-                createUserError.classList.remove('hidden');
+                alert("Error: " + error.message);
             }
         });
 
@@ -265,15 +258,91 @@
                     const userData = doc.data();
                     const userElement = document.createElement('div');
                     userElement.className = 'bg-gray-700 p-2 rounded flex justify-between items-center';
-                    userElement.innerHTML = `
-                        <div>
-                            <p class="font-semibold">${userData.name}</p>
-                            <p class="text-xs text-gray-400">${userData.email} - ${userData.role}</p>
-                        </div>`;
+                    userElement.innerHTML = `<div><p class="font-semibold">${userData.name}</p><p class="text-xs text-gray-400">${userData.email} - ${userData.role}</p></div>`;
                     userList.appendChild(userElement);
                 });
             });
         }
+
+        // --- CLIENT CENTRAL LOGIC ---
+        addClientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientData = {
+                name: document.getElementById('client-name').value,
+                contact: document.getElementById('client-contact').value,
+                email: document.getElementById('client-email').value,
+                status: document.getElementById('client-status').value,
+            };
+            try {
+                await addDoc(collection(db, "clients"), clientData);
+                addClientForm.reset();
+            } catch (error) {
+                alert("Error adding client: " + error.message);
+            }
+        });
+
+        function listenForClients() {
+            onSnapshot(collection(db, "clients"), (snapshot) => {
+                clientList.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const client = { id: doc.id, ...doc.data() };
+                    const clientCard = document.createElement('div');
+                    clientCard.className = 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600';
+                    clientCard.innerHTML = `
+                        <h4 class="font-bold text-lg">${client.name}</h4>
+                        <p class="text-sm text-gray-300">${client.contact} (${client.email})</p>
+                        <p class="text-xs font-semibold mt-2 inline-block py-1 px-2 rounded-full bg-blue-500">${client.status}</p>
+                    `;
+                    clientCard.addEventListener('click', () => openEditClientModal(client));
+                    clientList.appendChild(clientCard);
+                });
+            });
+        }
+
+        function openEditClientModal(client) {
+            document.getElementById('edit-client-id').value = client.id;
+            document.getElementById('edit-client-name').value = client.name;
+            document.getElementById('edit-client-contact').value = client.contact;
+            document.getElementById('edit-client-email').value = client.email;
+            document.getElementById('edit-client-status').value = client.status;
+            editClientModal.classList.remove('hidden');
+            editClientModal.classList.add('flex');
+        }
+
+        closeEditModalBtn.addEventListener('click', () => {
+            editClientModal.classList.add('hidden');
+            editClientModal.classList.remove('flex');
+        });
+
+        editClientForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientId = document.getElementById('edit-client-id').value;
+            const updatedData = {
+                name: document.getElementById('edit-client-name').value,
+                contact: document.getElementById('edit-client-contact').value,
+                email: document.getElementById('edit-client-email').value,
+                status: document.getElementById('edit-client-status').value,
+            };
+            try {
+                await updateDoc(doc(db, "clients", clientId), updatedData);
+                closeEditModalBtn.click(); // Close modal on success
+            } catch (error) {
+                alert("Error updating client: " + error.message);
+            }
+        });
+        
+        deleteClientBtn.addEventListener('click', async () => {
+            const clientId = document.getElementById('edit-client-id').value;
+            if (confirm("Are you sure you want to delete this client?")) {
+                try {
+                    await deleteDoc(doc(db, "clients", clientId));
+                    closeEditModalBtn.click();
+                } catch (error) {
+                    alert("Error deleting client: " + error.message);
+                }
+            }
+        });
+
 
         // --- NAVIGATION ---
         mainNav.addEventListener('click', (e) => {
