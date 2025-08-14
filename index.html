@@ -99,15 +99,34 @@
                             </div>
                             <div class="md:col-span-2">
                                 <h3 class="text-xl font-semibold mb-4">Current Clients</h3>
-                                <div id="client-list" class="space-y-3">
-                                    <!-- Client list will be populated here -->
-                                </div>
+                                <div id="client-list" class="space-y-3"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Inventory View (Placeholder) -->
-                    <div id="inventory-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Inventory</h2><p class="text-gray-400 mt-4">This is where the Inventory Control section will live.</p></div>
+                    <!-- Inventory View -->
+                    <div id="inventory-view" class="module-view hidden-view">
+                        <h2 class="text-3xl font-bold mb-6">Inventory</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-1">
+                                <h3 class="text-xl font-semibold mb-4">Add New Item</h3>
+                                <form id="add-item-form" class="space-y-4">
+                                    <input id="item-name" type="text" required class="form-input" placeholder="Item Name">
+                                    <input id="item-category" type="text" required class="form-input" placeholder="Category (e.g., Camera, Audio)">
+                                    <input id="item-quantity" type="number" required class="form-input" placeholder="Quantity">
+                                    <select id="item-status" class="form-input">
+                                        <option>Available</option><option>In Use</option><option>Maintenance</option><option>Retired</option>
+                                    </select>
+                                    <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Add Item</button>
+                                </form>
+                            </div>
+                            <div class="md:col-span-2">
+                                <h3 class="text-xl font-semibold mb-4">Current Stock</h3>
+                                <div id="inventory-list" class="space-y-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="sales-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Sales Quoting</h2><p class="text-gray-400 mt-4">This is where the Sales Quoting section will live.</p></div>
                     <div id="scheduling-view" class="module-view hidden-view"><h2 class="text-3xl font-bold">Job Scheduling</h2><p class="text-gray-400 mt-4">This is where the Job Scheduling section will live.</p></div>
 
@@ -139,40 +158,17 @@
     </div>
     
     <!-- Edit Client Modal -->
-    <div id="edit-client-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal">
-        <div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg">
-            <div class="p-6">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="text-2xl font-bold">Edit Client</h3>
-                        <p id="modal-client-id" class="text-sm text-gray-400"></p>
-                    </div>
-                    <button id="close-edit-modal-btn" class="text-2xl">&times;</button>
-                </div>
-                <div class="my-4 border-t border-gray-700"></div>
-                <form id="edit-client-form" class="space-y-4">
-                    <input id="edit-client-id" type="hidden">
-                    <input id="edit-client-name" type="text" required class="form-input" placeholder="Client Name">
-                    <input id="edit-client-contact" type="text" required class="form-input" placeholder="Primary Contact">
-                    <input id="edit-client-email" type="email" required class="form-input" placeholder="Contact Email">
-                    <select id="edit-client-status" class="form-input">
-                        <option>Lead</option><option>Active</option><option>On Hold</option><option>Archived</option>
-                    </select>
-                    <div class="flex justify-between items-center pt-4">
-                        <button id="delete-client-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button>
-                        <button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <div id="edit-client-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal"><div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg"><div class="p-6"><div class="flex justify-between items-start"><div><h3 class="text-2xl font-bold">Edit Client</h3><p id="modal-client-id" class="text-sm text-gray-400"></p></div><button id="close-edit-client-modal-btn" class="text-2xl">&times;</button></div><div class="my-4 border-t border-gray-700"></div><form id="edit-client-form" class="space-y-4"><input id="edit-client-id" type="hidden"><input id="edit-client-name" type="text" required class="form-input" placeholder="Client Name"><input id="edit-client-contact" type="text" required class="form-input" placeholder="Primary Contact"><input id="edit-client-email" type="email" required class="form-input" placeholder="Contact Email"><select id="edit-client-status" class="form-input"><option>Lead</option><option>Active</option><option>On Hold</option><option>Archived</option></select><div class="flex justify-between items-center pt-4"><button id="delete-client-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button><button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button></div></form></div></div></div>
+    
+    <!-- Edit Inventory Item Modal -->
+    <div id="edit-item-modal" class="fixed inset-0 z-50 hidden items-center justify-center modal"><div class="modal-content rounded-lg w-11/12 md:w-1/2 max-w-lg"><div class="p-6"><div class="flex justify-between items-start"><div><h3 class="text-2xl font-bold">Edit Item</h3><p id="modal-item-id" class="text-sm text-gray-400"></p></div><button id="close-edit-item-modal-btn" class="text-2xl">&times;</button></div><div class="my-4 border-t border-gray-700"></div><form id="edit-item-form" class="space-y-4"><input id="edit-item-id" type="hidden"><input id="edit-item-name" type="text" required class="form-input" placeholder="Item Name"><input id="edit-item-category" type="text" required class="form-input" placeholder="Category"><input id="edit-item-quantity" type="number" required class="form-input" placeholder="Quantity"><select id="edit-item-status" class="form-input"><option>Available</option><option>In Use</option><option>Maintenance</option><option>Retired</option></select><div class="flex justify-between items-center pt-4"><button id="delete-item-btn" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">Delete</button><button type="submit" class="action-button font-bold py-2 px-4 rounded-md">Save Changes</button></div></form></div></div></div>
 
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
@@ -199,13 +195,22 @@
         const mainNav = document.getElementById('mainNav');
         const createUserForm = document.getElementById('create-user-form');
         const userList = document.getElementById('user-list');
+        // Client Elements
         const addClientForm = document.getElementById('add-client-form');
         const clientList = document.getElementById('client-list');
         const editClientModal = document.getElementById('edit-client-modal');
         const editClientForm = document.getElementById('edit-client-form');
-        const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
+        const closeEditClientModalBtn = document.getElementById('close-edit-client-modal-btn');
         const deleteClientBtn = document.getElementById('delete-client-btn');
         const modalClientId = document.getElementById('modal-client-id');
+        // Inventory Elements
+        const addItemForm = document.getElementById('add-item-form');
+        const inventoryList = document.getElementById('inventory-list');
+        const editItemModal = document.getElementById('edit-item-modal');
+        const editItemForm = document.getElementById('edit-item-form');
+        const closeEditItemModalBtn = document.getElementById('close-edit-item-modal-btn');
+        const deleteItemBtn = document.getElementById('delete-item-btn');
+        const modalItemId = document.getElementById('modal-item-id');
         
         // --- AUTH & ROLE CHECK ---
         onAuthStateChanged(auth, async (user) => {
@@ -222,6 +227,7 @@
                 mainAppView.style.display = 'block';
                 listenForUsers();
                 listenForClients();
+                listenForInventory();
             } else {
                 loginView.style.display = 'flex';
                 mainAppView.style.display = 'none';
@@ -231,9 +237,7 @@
         // --- LOGIN/LOGOUT ---
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            signInWithEmailAndPassword(auth, email, password)
+            signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value)
                 .catch((error) => alert("Error: " + error.message));
         });
         logoutButton.addEventListener('click', () => signOut(auth));
@@ -241,14 +245,11 @@
         // --- USER MANAGEMENT (ADMIN ONLY) ---
         createUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('new-user-name').value;
-            const email = document.getElementById('new-user-email').value;
-            const password = document.getElementById('new-user-password').value;
-            const role = document.getElementById('new-user-role').value;
+            const { 'new-user-name': name, 'new-user-email': email, 'new-user-password': password, 'new-user-role': role } = createUserForm.elements;
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", userCredential.user.uid), { name, email, role });
-                alert(`Successfully created user: ${name}`);
+                const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
+                await setDoc(doc(db, "users", userCredential.user.uid), { name: name.value, email: email.value, role: role.value });
+                alert(`Successfully created user: ${name.value}`);
                 createUserForm.reset();
             } catch (error) {
                 alert("Error: " + error.message);
@@ -267,30 +268,41 @@
                 });
             });
         }
-
-        // --- CLIENT CENTRAL LOGIC ---
         
-        // Function to generate a simple client ID
-        function generateClientId() {
-            const timestamp = Date.now().toString();
-            return 'CL-' + timestamp.slice(-6);
+        // --- SEQUENTIAL ID GENERATOR ---
+        async function getNextSequenceValue(sequenceName) {
+            const counterRef = doc(db, "counters", sequenceName);
+            let nextId;
+            await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef);
+                if (!counterDoc.exists()) {
+                    // If counter doesn't exist, start it at 100000
+                    nextId = 100001;
+                    transaction.set(counterRef, { current_value: nextId });
+                } else {
+                    nextId = counterDoc.data().current_value + 1;
+                    transaction.update(counterRef, { current_value: nextId });
+                }
+            });
+            return nextId;
         }
 
+        // --- CLIENT CENTRAL LOGIC ---
         addClientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const clientData = {
-                clientId: generateClientId(), // Generate and add the new ID
-                name: document.getElementById('client-name').value,
-                contact: document.getElementById('client-contact').value,
-                email: document.getElementById('client-email').value,
-                status: document.getElementById('client-status').value,
-            };
+            const { 'client-name': name, 'client-contact': contact, 'client-email': email, 'client-status': status } = addClientForm.elements;
             try {
+                const nextId = await getNextSequenceValue("client");
+                const clientData = {
+                    clientId: `CL-${nextId}`,
+                    name: name.value,
+                    contact: contact.value,
+                    email: email.value,
+                    status: status.value,
+                };
                 await addDoc(collection(db, "clients"), clientData);
                 addClientForm.reset();
-            } catch (error) {
-                alert("Error adding client: " + error.message);
-            }
+            } catch (error) { alert("Error adding client: " + error.message); }
         });
 
         function listenForClients() {
@@ -300,14 +312,7 @@
                     const client = { id: doc.id, ...doc.data() };
                     const clientCard = document.createElement('div');
                     clientCard.className = 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600';
-                    clientCard.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-lg">${client.name}</h4>
-                            <span class="text-xs font-mono text-gray-400">${client.clientId || 'N/A'}</span>
-                        </div>
-                        <p class="text-sm text-gray-300 mt-1">${client.contact} (${client.email})</p>
-                        <p class="text-xs font-semibold mt-2 inline-block py-1 px-2 rounded-full bg-blue-500">${client.status}</p>
-                    `;
+                    clientCard.innerHTML = `<div class="flex justify-between items-start"><h4 class="font-bold text-lg">${client.name}</h4><span class="text-xs font-mono text-gray-400">${client.clientId || 'N/A'}</span></div><p class="text-sm text-gray-300 mt-1">${client.contact} (${client.email})</p><p class="text-xs font-semibold mt-2 inline-block py-1 px-2 rounded-full bg-blue-500">${client.status}</p>`;
                     clientCard.addEventListener('click', () => openEditClientModal(client));
                     clientList.appendChild(clientCard);
                 });
@@ -315,50 +320,98 @@
         }
 
         function openEditClientModal(client) {
-            document.getElementById('edit-client-id').value = client.id;
-            document.getElementById('edit-client-name').value = client.name;
-            document.getElementById('edit-client-contact').value = client.contact;
-            document.getElementById('edit-client-email').value = client.email;
-            document.getElementById('edit-client-status').value = client.status;
+            editClientForm['edit-client-id'].value = client.id;
+            editClientForm['edit-client-name'].value = client.name;
+            editClientForm['edit-client-contact'].value = client.contact;
+            editClientForm['edit-client-email'].value = client.email;
+            editClientForm['edit-client-status'].value = client.status;
             modalClientId.textContent = `Client ID: ${client.clientId || 'N/A'}`;
             editClientModal.classList.remove('hidden');
             editClientModal.classList.add('flex');
         }
-
-        closeEditModalBtn.addEventListener('click', () => {
-            editClientModal.classList.add('hidden');
-            editClientModal.classList.remove('flex');
-        });
+        closeEditClientModalBtn.addEventListener('click', () => { editClientModal.classList.add('hidden'); editClientModal.classList.remove('flex'); });
 
         editClientForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const clientId = document.getElementById('edit-client-id').value;
-            const updatedData = {
-                name: document.getElementById('edit-client-name').value,
-                contact: document.getElementById('edit-client-contact').value,
-                email: document.getElementById('edit-client-email').value,
-                status: document.getElementById('edit-client-status').value,
-            };
+            const { 'edit-client-id': id, 'edit-client-name': name, 'edit-client-contact': contact, 'edit-client-email': email, 'edit-client-status': status } = editClientForm.elements;
             try {
-                await updateDoc(doc(db, "clients", clientId), updatedData);
-                closeEditModalBtn.click(); // Close modal on success
-            } catch (error) {
-                alert("Error updating client: " + error.message);
-            }
+                await updateDoc(doc(db, "clients", id.value), { name: name.value, contact: contact.value, email: email.value, status: status.value });
+                closeEditClientModalBtn.click();
+            } catch (error) { alert("Error updating client: " + error.message); }
         });
         
         deleteClientBtn.addEventListener('click', async () => {
-            const clientId = document.getElementById('edit-client-id').value;
+            const clientId = editClientForm['edit-client-id'].value;
             if (confirm("Are you sure you want to delete this client?")) {
                 try {
                     await deleteDoc(doc(db, "clients", clientId));
-                    closeEditModalBtn.click();
-                } catch (error) {
-                    alert("Error deleting client: " + error.message);
-                }
+                    closeEditClientModalBtn.click();
+                } catch (error) { alert("Error deleting client: " + error.message); }
             }
         });
 
+        // --- INVENTORY LOGIC ---
+        addItemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const { 'item-name': name, 'item-category': category, 'item-quantity': quantity, 'item-status': status } = addItemForm.elements;
+            try {
+                const nextId = await getNextSequenceValue("inventory");
+                const itemData = {
+                    itemId: `INV-${nextId}`,
+                    name: name.value,
+                    category: category.value,
+                    quantity: Number(quantity.value),
+                    status: status.value
+                };
+                await addDoc(collection(db, "inventory"), itemData);
+                addItemForm.reset();
+            } catch (error) { alert("Error adding item: " + error.message); }
+        });
+
+        function listenForInventory() {
+            onSnapshot(collection(db, "inventory"), (snapshot) => {
+                inventoryList.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const item = { id: doc.id, ...doc.data() };
+                    const itemCard = document.createElement('div');
+                    itemCard.className = 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600';
+                    itemCard.innerHTML = `<div class="flex justify-between items-start"><h4 class="font-bold text-lg">${item.name}</h4><span class="text-xs font-mono text-gray-400">${item.itemId || 'N/A'}</span></div><p class="text-sm text-gray-300 mt-1">Category: ${item.category}</p><p class="text-sm text-gray-300">Quantity: ${item.quantity}</p><p class="text-xs font-semibold mt-2 inline-block py-1 px-2 rounded-full bg-purple-500">${item.status}</p>`;
+                    itemCard.addEventListener('click', () => openEditItemModal(item));
+                    inventoryList.appendChild(itemCard);
+                });
+            });
+        }
+
+        function openEditItemModal(item) {
+            editItemForm['edit-item-id'].value = item.id;
+            editItemForm['edit-item-name'].value = item.name;
+            editItemForm['edit-item-category'].value = item.category;
+            editItemForm['edit-item-quantity'].value = item.quantity;
+            editItemForm['edit-item-status'].value = item.status;
+            modalItemId.textContent = `Item ID: ${item.itemId || 'N/A'}`;
+            editItemModal.classList.remove('hidden');
+            editItemModal.classList.add('flex');
+        }
+        closeEditItemModalBtn.addEventListener('click', () => { editItemModal.classList.add('hidden'); editItemModal.classList.remove('flex'); });
+
+        editItemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const { 'edit-item-id': id, 'edit-item-name': name, 'edit-item-category': category, 'edit-item-quantity': quantity, 'edit-item-status': status } = editItemForm.elements;
+            try {
+                await updateDoc(doc(db, "inventory", id.value), { name: name.value, category: category.value, quantity: Number(quantity.value), status: status.value });
+                closeEditItemModalBtn.click();
+            } catch (error) { alert("Error updating item: " + error.message); }
+        });
+
+        deleteItemBtn.addEventListener('click', async () => {
+            const itemId = editItemForm['edit-item-id'].value;
+            if (confirm("Are you sure you want to delete this item?")) {
+                try {
+                    await deleteDoc(doc(db, "inventory", itemId));
+                    closeEditItemModalBtn.click();
+                } catch (error) { alert("Error deleting item: " + error.message); }
+            }
+        });
 
         // --- NAVIGATION ---
         mainNav.addEventListener('click', (e) => {
