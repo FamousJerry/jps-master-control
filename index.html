@@ -1,149 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Jingjai Productions • Master Control</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jingjai Productions Master Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel Compiler -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Firebase Compatibility Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 
     <style>
-      :root { --brand: #39FF14; }
-      body { background-color: #141414; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #fff; }
-      .logo-neon { color: var(--brand); text-shadow: 0 0 2px var(--brand), 0 0 8px var(--brand), 0 0 15px #1c7a0a; }
-      .action-button { background-color: #2d9e1c; transition: background-color .2s ease, color .2s ease; }
-      .action-button:hover { background-color: var(--brand); color: #141414; }
-      .nav-link.active-nav { color: var(--brand); font-weight: 700; }
-      .form-input { background-color: #333; border: 1px solid #555; border-radius: 8px; padding: 12px 16px; width: 100%; color: #fff; transition: border-color .2s ease; }
-      .form-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(57,255,20,.15); }
-      .module-card { background-color: #2F2F2F; transition: transform .2s ease, box-shadow .2s ease; border-radius: 12px; }
-      .module-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,.5); }
-      .tab-button { background-color: #333; border-radius: 10px 10px 0 0; }
-      .tab-button.active { background-color: var(--brand); color: #141414; font-weight: 700; }
-      .tab-content { display: none; }
-      .tab-content.active { display: block; }
+        body { background-color: #141414; font-family: 'Inter', sans-serif; color: #fff; }
+        .logo-neon { color: #39FF14; text-shadow: 0 0 2px #39FF14, 0 0 8px #39FF14, 0 0 15px #1c7a0a; }
+        .action-button { background-color: #2d9e1c; transition: background-color 0.3s; }
+        .action-button:hover { background-color: #39FF14; color: #141414; }
+        .nav-link.active-nav { color: #39FF14; font-weight: 700; }
+        .form-input { background-color: #333; border: 1px solid #555; border-radius: 4px; padding: 12px 16px; width: 100%; color: #fff; transition: border-color 0.3s; }
+        .form-input:focus { outline: none; border-color: #39FF14; }
+        .module-card { background-color: #2F2F2F; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .module-card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .tab-button { background-color: #333; }
+        .tab-button.active { background-color: #39FF14; color: #141414; font-weight: bold; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
-
-    <!-- React (production UMD) -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
-    <!-- Firebase (modular CDN, no-compat) -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-      import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, limit, startAfter, updateDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-
-      // ---- CONFIG (move to env in real build) ----
-      const firebaseConfig = {
-        apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
-        authDomain: "jps-app-468911.firebaseapp.com",
-        projectId: "jps-app-468911",
-        storageBucket: "jps-app-468911.appspot.com",
-        messagingSenderId: "532726782263",
-        appId: "1:532726782263:web:0e227d27bc61ef719962b2",
-        measurementId: "G-8HXP33E0S8"
-      };
-
-      // Boot Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-
-      // Expose to window so non-module script can use
-      window.__jps = { auth, db, firebaseApp: app };
-    </script>
-  </head>
-  <body>
+</head>
+<body>
     <div id="root"></div>
 
-    <!-- App (non-module so React UMD can run) -->
-    <script>
-      const { useState, useEffect, useMemo } = React;
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
 
-      // ---- Utilities ----
-      const cn = (...a) => a.filter(Boolean).join(' ');
-
-      // ---- Authentication Views ----
-      function LoginView() {
-        const [email, setEmail] = useState('');
-        const [password, setPassword] = useState('');
-        const [error, setError] = useState('');
-        const [busy, setBusy] = useState(false);
-
-        const handleLogin = async (e) => {
-          e.preventDefault();
-          setError('');
-          setBusy(true);
-          try {
-            await firebaseAuth().signInWithEmailAndPassword(email.trim(), password);
-          } catch (err) {
-            setError(err.message || 'Authentication failed');
-          } finally { setBusy(false); }
-        };
-
-        const reset = async () => {
-          if (!email) return setError('Enter your email, then click reset.');
-          try {
-            await firebaseAuth().sendPasswordResetEmail(email.trim());
-            alert('Password reset email sent.');
-          } catch (e) { setError(e.message); }
-        };
-
-        const google = async () => {
-          try {
-            const provider = new window.firebase.auth.GoogleAuthProvider();
-            await firebaseAuth().signInWithPopup(provider);
-          } catch (e) { setError(e.message); }
-        };
-
-        return React.createElement('div', { className: 'flex items-center justify-center min-h-screen' },
-          React.createElement('div', { className: 'w-full max-w-md p-8 space-y-8 rounded-lg', style: { backgroundColor: 'rgba(0,0,0,.8)' } },
-            React.createElement('div', { className: 'text-center' },
-              React.createElement('h1', { className: 'text-3xl font-bold logo-neon mb-2' }, 'Jingjai Productions'),
-              React.createElement('h2', { className: 'text-2xl font-semibold' }, 'Master Control Login')
-            ),
-            error && React.createElement('div', { className: 'text-red-500 text-sm text-center' }, error),
-            React.createElement('form', { onSubmit: handleLogin, className: 'space-y-4' },
-              React.createElement('input', { type: 'email', value: email, onChange: e => setEmail(e.target.value), required: true, className: 'form-input', placeholder: 'Email address' }),
-              React.createElement('input', { type: 'password', value: password, onChange: e => setPassword(e.target.value), required: true, className: 'form-input', placeholder: 'Password' }),
-              React.createElement('button', { type: 'submit', disabled: busy, className: 'w-full flex justify-center py-3 px-4 rounded-md text-sm font-bold text-white action-button' }, busy ? 'Signing in…' : 'Sign in')
-            ),
-            React.createElement('div', { className: 'flex justify-between text-sm text-gray-400' },
-              React.createElement('button', { onClick: reset, className: 'hover:text-white' }, 'Reset password'),
-              React.createElement('button', { onClick: google, className: 'hover:text-white' }, 'Sign in with Google')
-            )
-          )
-        );
-      }
-
-      // shim to use modular auth from window.__jps in UMD code
-      function firebaseAuth() {
-        // Provide a tiny wrapper that exposes classic methods mapped to modular
-        const { auth } = window.__jps;
-        return {
-          signInWithEmailAndPassword: (email, pass) => window.firebase.auth().signInWithEmailAndPassword(email, pass),
-          sendPasswordResetEmail: (email) => window.firebase.auth().sendPasswordResetEmail(email),
-          signOut: () => window.firebase.auth().signOut(),
-          onAuthStateChanged: (cb) => window.firebase.auth().onAuthStateChanged(cb),
-          signInWithPopup: (provider) => window.firebase.auth().signInWithPopup(provider)
-        };
-      }
-
-      // Load compat (auth only) to support the wrapper above without Babel
-      (function loadCompat() {
-        const s1 = document.createElement('script');
-        s1.src = 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js';
-        const s2 = document.createElement('script');
-        s2.src = 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js';
-        const s3 = document.createElement('script');
-        s3.src = 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js';
-        document.head.appendChild(s1);
-        document.head.appendChild(s2);
-        document.head.appendChild(s3);
-        s3.onload = () => {
-          // initialize compat with same config
-          const firebaseConfig = {
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
             apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
             authDomain: "jps-app-468911.firebaseapp.com",
             projectId: "jps-app-468911",
@@ -151,253 +48,191 @@
             messagingSenderId: "532726782263",
             appId: "1:532726782263:web:0e227d27bc61ef719962b2",
             measurementId: "G-8HXP33E0S8"
-          };
-          if (!window.firebase?.apps?.length) window.firebase.initializeApp(firebaseConfig);
-          boot();
-        };
-      })();
-
-      // ---- Client Form ----
-      function ClientForm({ client, onBack, onSave }) {
-        const [activeTab, setActiveTab] = useState('core');
-        const base = useMemo(() => ({ contacts: [], industry: 'Film', ...client }), [client]);
-        const [formData, setFormData] = useState(base);
-
-        useEffect(() => { setFormData(base); }, [base]);
-
-        const handleChange = (e) => {
-          const { name, value } = e.target; setFormData((p) => ({ ...p, [name]: value }));
-        };
-        const handleContactChange = (i, e) => {
-          const { name, value } = e.target; const copy = [...(formData.contacts || [])];
-          copy[i] = { ...copy[i], [name]: value }; setFormData((p) => ({ ...p, contacts: copy }));
-        };
-        const addContact = () => setFormData((p) => ({ ...p, contacts: [ ...(p.contacts||[]), { name:'', title:'', email:'', phone:'' } ] }));
-
-        const handleSave = (e) => { e.preventDefault(); onSave({ ...formData }); };
-
-        const tabs = { core: 'Core Profile', contacts: 'Key Contacts', locations: 'Locations', sales: 'Sales & Pipeline' };
-
-        return React.createElement('div', { className: 'bg-[#1f1f1f] p-6 rounded-lg' },
-          React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-            React.createElement('h2', { className: 'text-3xl font-bold' }, client ? `Editing ${client.clientId || client.tradingName || client.legalName || ''}` : 'Add New Client'),
-            React.createElement('button', { onClick: onBack, className: 'text-sm text-gray-400 hover:text-white' }, '\u2190 Back to List')
-          ),
-          React.createElement('form', { onSubmit: handleSave },
-            React.createElement('div', { className: 'mb-4 border-b border-gray-700 flex space-x-2' },
-              Object.entries(tabs).map(([id, label]) => (
-                React.createElement('button', { key: id, type: 'button', onClick: () => setActiveTab(id), className: cn('py-2 px-4 tab-button', activeTab === id && 'active') }, label)
-              ))
-            ),
-            React.createElement('div', { className: 'max-h-[60vh] overflow-y-auto p-1 space-y-4' },
-              React.createElement('div', { className: cn('tab-content', activeTab === 'core' && 'active') },
-                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-                  React.createElement(Field, { label: 'Company Legal Name', name: 'legalName', value: formData.legalName || '', onChange: handleChange }),
-                  React.createElement(Field, { label: 'Trading Name', name: 'tradingName', value: formData.tradingName || '', onChange: handleChange }),
-                  React.createElement(Select, { label: 'Industry', name: 'industry', value: formData.industry || '', onChange: handleChange, options: ['TV','Film','Events','Corporate'] }),
-                  React.createElement(Field, { label: 'Tax ID / VAT ID', name: 'taxId', value: formData.taxId || '', onChange: handleChange })
-                )
-              ),
-              React.createElement('div', { className: cn('tab-content', activeTab === 'contacts' && 'active') },
-                (formData.contacts || []).map((c, i) => (
-                  React.createElement('div', { key: i, className: 'p-4 border border-gray-700 rounded-lg space-y-2 mb-4' },
-                    React.createElement('h4', { className: 'font-semibold' }, `Contact #${i+1}`),
-                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-                      React.createElement(Field, { label: 'Name', name: 'name', value: c.name || '', onChange: (e) => handleContactChange(i, e) }),
-                      React.createElement(Field, { label: 'Title', name: 'title', value: c.title || '', onChange: (e) => handleContactChange(i, e) }),
-                      React.createElement(Field, { label: 'Email', type: 'email', name: 'email', value: c.email || '', onChange: (e) => handleContactChange(i, e) }),
-                      React.createElement(Field, { label: 'Phone', name: 'phone', value: c.phone || '', onChange: (e) => handleContactChange(i, e) })
-                    )
-                  )
-                )),
-                React.createElement('button', { type: 'button', onClick: addContact, className: 'text-sm text-green-400 hover:text-green-300 mt-2' }, '+ Add Contact')
-              ),
-              React.createElement('div', { className: cn('tab-content', activeTab === 'locations' && 'active') },
-                React.createElement('p', null, 'Locations content here…')
-              ),
-              React.createElement('div', { className: cn('tab-content', activeTab === 'sales' && 'active') },
-                React.createElement('p', null, 'Sales & Pipeline content here…')
-              )
-            ),
-            React.createElement('div', { className: 'mt-6 flex justify-end gap-4' },
-              React.createElement('button', { type: 'submit', className: 'action-button font-bold py-2 px-4 rounded-md' }, 'Save Client')
-            )
-          )
-        );
-      }
-
-      function Field({ label, name, value, onChange, type = 'text' }) {
-        return React.createElement('div', null,
-          React.createElement('label', { className: 'text-sm block mb-1' }, label),
-          React.createElement('input', { className: 'form-input', name, value, onChange, type })
-        );
-      }
-      function Select({ label, name, value, onChange, options = [] }) {
-        return React.createElement('div', null,
-          React.createElement('label', { className: 'text-sm block mb-1' }, label),
-          React.createElement('select', { className: 'form-input', name, value, onChange }, options.map(o => React.createElement('option', { key: o, value: o }, o)))
-        );
-      }
-
-      // ---- Client Central ----
-      function ClientCentralView() {
-        const [clients, setClients] = useState([]);
-        const [cursor, setCursor] = useState(null);
-        const [view, setView] = useState('list');
-        const [editingClient, setEditingClient] = useState(null);
-
-        useEffect(() => {
-          const ref = window.firebase.firestore().collection('clients').orderBy('createdAt', 'desc').limit(25);
-          const unsub = ref.onSnapshot(snap => {
-            const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            setClients(data);
-            setCursor(snap.docs[snap.docs.length-1] || null);
-          });
-          return () => unsub();
-        }, []);
-
-        const loadMore = async () => {
-          if (!cursor) return;
-          const ref = window.firebase.firestore().collection('clients').orderBy('createdAt', 'desc').startAfter(cursor).limit(25);
-          const snap = await ref.get();
-          setClients((prev) => ([...prev, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))]));
-          setCursor(snap.docs[snap.docs.length-1] || null);
         };
 
-        const showAdd = () => { setEditingClient(null); setView('form'); };
-        const edit = (c) => { setEditingClient(c); setView('form'); };
-        const back = () => setView('list');
+        // Initialize Firebase using the compat libraries
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        const save = async (payload) => {
-          const db = window.firebase.firestore();
-          if (payload.id) {
-            const { id, ...rest } = payload; await db.collection('clients').doc(id).update({ ...rest, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() });
-          } else {
-            // Transaction counter for clientId (still client-side; consider moving server-side via Cloud Function)
-            const counterRef = db.collection('counters').doc('client');
-            const newId = await db.runTransaction(async (tx) => {
-              const snap = await tx.get(counterRef);
-              let current = 100000;
-              if (!snap.exists) { tx.set(counterRef, { current_value: current }); }
-              else { current = snap.data().current_value + 1; tx.update(counterRef, { current_value: current }); }
-              return current;
-            });
-            await db.collection('clients').add({ ...payload, clientId: `CL-${newId}`, createdAt: window.firebase.firestore.FieldValue.serverTimestamp() });
-          }
-          setView('list');
+        // --- PERMISSIONS CONFIGURATION ---
+        const permissions = {
+            Admin: { nav: ['dashboard', 'client-central', 'inventory', 'sales', 'scheduling', 'admin'], canDelete: true },
+            Scheduler: { nav: ['dashboard', 'scheduling'], canDelete: false },
+            Sales: { nav: ['dashboard', 'client-central', 'sales'], canDelete: false },
+            'Warehouse Manager': { nav: ['dashboard', 'inventory'], canDelete: true },
+            'Warehouse Staff': { nav: ['dashboard', 'inventory'], canDelete: false },
+            Tech: { nav: ['dashboard', 'inventory', 'scheduling'], canDelete: false },
+            'Jr Tech': { nav: ['dashboard', 'inventory', 'scheduling'], canDelete: false },
+            Driver: { nav: ['dashboard', 'scheduling'], canDelete: false },
+            'Team Member': { nav: ['dashboard'], canDelete: false }
+        };
+        
+        // --- COMPONENTS ---
+
+        const LoginView = () => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                setError('');
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch((error) => setError(error.message));
+            };
+
+            return (
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="w-full max-w-md p-8 space-y-8 rounded-lg" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}>
+                        <div className="text-center">
+                            <h1 className="text-3xl font-bold logo-neon mb-2">Jingjai Productions</h1>
+                            <h2 className="text-2xl font-semibold">Master Control Login</h2>
+                        </div>
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="form-input" placeholder="Email address" />
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="form-input" placeholder="Password" />
+                            <button type="submit" className="w-full flex justify-center py-3 px-4 rounded-md text-sm font-bold text-white action-button">Sign in</button>
+                        </form>
+                    </div>
+                </div>
+            );
         };
 
-        if (view === 'form') return React.createElement(ClientForm, { client: editingClient, onBack: back, onSave: save });
+        const ClientCentralView = ({ user }) => {
+            return <div><h2 className="text-3xl font-bold">Client Central</h2><p>Full client module coming soon...</p></div>
+        }
+        
+        // ... Other Module Placeholders ...
+        const InventoryView = () => <div><h2 className="text-3xl font-bold">Inventory</h2></div>
+        const SalesView = () => <div><h2 className="text-3xl font-bold">Sales</h2></div>
+        const SchedulingView = () => <div><h2 className="text-3xl font-bold">Scheduling</h2></div>
+        const AdminView = () => <div><h2 className="text-3xl font-bold">Admin</h2></div>
 
-        return React.createElement('div', null,
-          React.createElement('div', { className: 'flex justify-between items-center mb-6' },
-            React.createElement('h2', { className: 'text-3xl font-bold' }, 'Client Central'),
-            React.createElement('button', { onClick: showAdd, className: 'action-button font-bold py-2 px-4 rounded-md' }, 'Add New Client')
-          ),
-          React.createElement('h3', { className: 'text-xl font-semibold mb-4' }, 'Current Clients'),
-          React.createElement('div', { className: 'space-y-3' },
-            clients.map(c => (
-              React.createElement('div', { key: c.id, onClick: () => edit(c), className: 'bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600' },
-                React.createElement('div', { className: 'flex justify-between items-start' },
-                  React.createElement('h4', { className: 'font-bold text-lg' }, c.tradingName || c.legalName || '—'),
-                  React.createElement('span', { className: 'text-xs font-mono text-gray-400' }, c.clientId || 'N/A')
-                ),
-                React.createElement('p', { className: 'text-sm text-gray-300 mt-1' }, c.industry || '—')
-              )
-            )),
-          React.createElement('div', { className: 'mt-4' },
-            React.createElement('button', { onClick: loadMore, className: cn('text-sm', cursor ? 'text-green-400 hover:text-green-300' : 'text-gray-500 cursor-not-allowed') }, cursor ? 'Load more' : 'No more results')
-          )
-        );
-      }
 
-      // ---- Dashboard ----
-      function DashboardView({ user, setCurrentView }) {
-        return React.createElement('div', null,
-          React.createElement('h2', { className: 'text-3xl font-bold mb-6' }, 'Dashboard'),
-          React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6' },
-            React.createElement('div', { onClick: () => setCurrentView('client-central-view'), className: 'module-card p-4 cursor-pointer' },
-              React.createElement('h3', { className: 'font-bold text-lg' }, 'Client Central'),
-              React.createElement('p', { className: 'text-sm text-gray-400' }, 'Manage clients and leads.')
-            )
-          )
-        );
-      }
+        const DashboardView = ({ user, setCurrentView }) => {
+            const userPermissions = permissions[user.role] || permissions['Team Member'];
+            const availableModules = [
+                { id: 'client-central', name: 'Client Central', desc: 'Manage clients and leads.' },
+                { id: 'inventory', name: 'Inventory', desc: 'Track equipment and stock.' },
+                { id: 'sales', name: 'Sales Quoting', desc: 'Create and send quotes.' },
+                { id: 'scheduling', name: 'Job Scheduling', desc: 'Coordinate your team.' },
+            ];
 
-      // ---- Main App ----
-      function MainAppView({ user, onLogout }) {
-        const [currentView, setCurrentView] = useState('dashboard-view');
-        const renderView = () => {
-          switch(currentView){
-            case 'client-central-view': return React.createElement(ClientCentralView);
-            case 'dashboard-view':
-            default: return React.createElement(DashboardView, { user, setCurrentView });
-          }
-        };
-        return React.createElement('div', null,
-          React.createElement('header', { className: 'fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center' },
-            React.createElement('div', { className: 'flex items-center space-x-4 md:space-x-8' },
-              React.createElement('h1', { className: 'text-lg md:text-2xl font-bold logo-neon whitespace-nowrap' },
-                React.createElement('span', { className: 'hidden md:inline' }, 'Jingjai Productions Master Control'),
-                React.createElement('span', { className: 'md:hidden' }, 'JP Master Control')
-              ),
-              React.createElement('nav', null,
-                React.createElement('a', { href: '#', onClick: () => setCurrentView('dashboard-view'), className: cn('nav-link text-white font-semibold hover:text-gray-300 mr-4', currentView === 'dashboard-view' && 'active-nav') }, 'Dashboard'),
-                React.createElement('a', { href: '#', onClick: () => setCurrentView('client-central-view'), className: cn('nav-link text-white font-semibold hover:text-gray-300', currentView === 'client-central-view' && 'active-nav') }, 'Client Central')
-              )
-            ),
-            React.createElement('div', { className: 'flex items-center space-x-4' },
-              React.createElement('div', { className: 'text-right' },
-                React.createElement('p', { className: 'font-semibold' }, user.name || 'User'),
-                React.createElement('p', { className: 'text-xs text-gray-400' }, user.role || '—')
-              ),
-              React.createElement('button', { onClick: onLogout, className: 'text-xs text-gray-400 hover:text-white' }, 'Logout')
-            )
-          ),
-          React.createElement('main', { className: 'pt-24 px-4 md:px-8' }, renderView())
-        );
-      }
+            return (
+                <div>
+                    <h2 className="text-3xl font-bold mb-6">Dashboard</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                       {availableModules.filter(m => userPermissions.nav.includes(m.id)).map(module => (
+                           <div key={module.id} onClick={() => setCurrentView(module.id)} className="module-card p-4 rounded-lg cursor-pointer">
+                               <h3 className="font-bold text-lg">{module.name}</h3>
+                               <p className="text-sm text-gray-400">{module.desc}</p>
+                           </div>
+                       ))}
+                    </div>
+                </div>
+            );
+        }
 
-      function App() {
-        const [user, setUser] = useState(null);
-        const [loading, setLoading] = useState(true);
+        const MainAppView = ({ user, onLogout }) => {
+            const [currentView, setCurrentView] = useState('dashboard');
+            const userPermissions = permissions[user.role] || permissions['Team Member'];
 
-        useEffect(() => {
-          const unsub = window.firebase.auth().onAuthStateChanged(async (fbUser) => {
-            try {
-              if (fbUser) {
-                const uref = window.firebase.firestore().collection('users').doc(fbUser.uid);
-                const doc = await uref.get();
-                if (doc.exists) {
-                  const data = doc.data();
-                  if (data.role === 'Disabled') {
-                    alert('Your account has been disabled.');
-                    await window.firebase.auth().signOut();
-                    setUser(null);
-                  } else {
-                    setUser({ uid: fbUser.uid, ...data });
-                  }
-                } else {
-                  await window.firebase.auth().signOut();
-                  setUser(null);
+            const renderView = () => {
+                switch(currentView) {
+                    case 'client-central': return <ClientCentralView user={user} />;
+                    case 'inventory': return <InventoryView />;
+                    case 'sales': return <SalesView />;
+                    case 'scheduling': return <SchedulingView />;
+                    case 'admin': return <AdminView />;
+                    case 'dashboard':
+                    default:
+                        return <DashboardView user={user} setCurrentView={setCurrentView} />;
                 }
-              } else {
-                setUser(null);
-              }
-            } finally { setLoading(false); }
-          });
-          return () => unsub();
-        }, []);
+            }
+            
+            const navLinks = [
+                { id: 'dashboard', name: 'Dashboard' },
+                { id: 'client-central', name: 'Client Central' },
+                { id: 'inventory', name: 'Inventory' },
+                { id: 'sales', name: 'Sales' },
+                { id: 'scheduling', name: 'Scheduling' },
+                { id: 'admin', name: 'Admin' },
+            ];
 
-        const logout = () => window.firebase.auth().signOut();
-        if (loading) return React.createElement('div', { className: 'flex items-center justify-center min-h-screen' }, 'Loading…');
-        return user ? React.createElement(MainAppView, { user, onLogout: logout }) : React.createElement(LoginView);
-      }
+            return (
+                <div>
+                    <header className="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center">
+                        <div className="flex items-center space-x-4 md:space-x-8">
+                            <h1 className="text-lg md:text-2xl font-bold logo-neon whitespace-nowrap">
+                                <span className="hidden md:inline">Jingjai Productions Master Control</span>
+                                <span className="md:hidden">JP Master Control</span>
+                            </h1>
+                             <nav className="hidden md:flex space-x-4">
+                                {navLinks.filter(l => userPermissions.nav.includes(l.id)).map(link => (
+                                     <a key={link.id} href="#" onClick={() => setCurrentView(link.id)} className={`nav-link text-white font-semibold hover:text-gray-300 ${currentView === link.id && 'active-nav'}`}>{link.name}</a>
+                                ))}
+                             </nav>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                                <p className="font-semibold">{user.name}</p>
+                                <p className="text-xs text-gray-400">{user.role}</p>
+                            </div>
+                            <button onClick={onLogout} className="text-xs text-gray-400 hover:text-white">Logout</button>
+                        </div>
+                    </header>
+                    <main className="pt-24 px-4 md:px-8">
+                        {renderView()}
+                    </main>
+                </div>
+            );
+        };
 
-      function boot(){
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+                    if (firebaseUser) {
+                        const userDocRef = db.collection("users").doc(firebaseUser.uid);
+                        const userDoc = await userDocRef.get();
+                        if (userDoc.exists) {
+                            const userData = userDoc.data();
+                             if (userData.role === 'Disabled') {
+                                alert("Your account has been disabled. Please contact an administrator.");
+                                auth.signOut();
+                                setUser(null);
+                            } else {
+                                setUser({ uid: firebaseUser.uid, ...userData });
+                            }
+                        } else {
+                            auth.signOut();
+                            setUser(null);
+                        }
+                    } else {
+                        setUser(null);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            const handleLogout = () => {
+                auth.signOut();
+            };
+
+            if (loading) {
+                return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+            }
+
+            return user ? <MainAppView user={user} onLogout={handleLogout} /> : <LoginView />;
+        };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(App));
-      }
+        root.render(<App />);
     </script>
-  </body>
+</body>
 </html>
