@@ -90,15 +90,108 @@
         };
         
         const ClientCentralView = () => {
-            // This is a placeholder for the full Client Central component
-            // We will build this out with all the tabs and fields next.
+            const [clients, setClients] = React.useState([]);
+            const [view, setView] = React.useState('list'); // 'list' or 'form'
+            const [editingClient, setEditingClient] = React.useState(null);
+
+            React.useEffect(() => {
+                const unsubscribe = db.collection("clients").onSnapshot(snapshot => {
+                    const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setClients(clientsData);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            const handleShowAddForm = () => {
+                setEditingClient(null);
+                setView('form');
+            };
+
+            const handleEditClient = (client) => {
+                setEditingClient(client);
+                setView('form');
+            };
+            
+            const handleBackToList = () => {
+                setView('list');
+            }
+
             return (
                  <div>
-                    <h2 className="text-3xl font-bold mb-6">Client Central</h2>
-                    <p>This is where the detailed, tabbed Client Central module will be built.</p>
+                    {view === 'list' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-3xl font-bold">Client Central</h2>
+                                <button onClick={handleShowAddForm} className="action-button font-bold py-2 px-4 rounded-md">Add New Client</button>
+                            </div>
+                            <h3 className="text-xl font-semibold mb-4">Current Clients</h3>
+                            <div className="space-y-3">
+                                {clients.map(client => (
+                                    <div key={client.id} onClick={() => handleEditClient(client)} className="bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="font-bold text-lg">{client.tradingName || client.legalName}</h4>
+                                            <span className="text-xs font-mono text-gray-400">{client.clientId || 'N/A'}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-300 mt-1">{client.industry}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {view === 'form' && (
+                        <ClientForm client={editingClient} onBack={handleBackToList} />
+                    )}
                 </div>
             )
         }
+
+        const ClientForm = ({ client, onBack }) => {
+            const [activeTab, setActiveTab] = React.useState('core');
+            const [formData, setFormData] = React.useState(client || {});
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                // Logic to save formData to Firestore would go here
+                alert("Saving client data... (functionality to be fully implemented)");
+                onBack();
+            };
+
+            const tabs = {
+                core: 'Core Profile',
+                contacts: 'Key Contacts',
+                locations: 'Locations',
+                sales: 'Sales & Pipeline',
+                integration: 'Integration',
+                files: 'Files & Compliance',
+            };
+
+            return (
+                <div className="bg-[#1f1f1f] p-6 rounded-lg">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-3xl font-bold">{client ? `Editing ${client.clientId}` : 'Add New Client'}</h2>
+                        <button onClick={onBack} className="text-sm text-gray-400 hover:text-white">&larr; Back to List</button>
+                    </div>
+                    <form onSubmit={handleSave}>
+                        <div className="mb-4 border-b border-gray-700 flex space-x-2">
+                           {Object.keys(tabs).map(tabId => (
+                               <button key={tabId} type="button" onClick={() => setActiveTab(tabId)} className={`py-2 px-4 rounded-t-md text-sm tab-button ${activeTab === tabId ? 'active' : ''}`}>
+                                   {tabs[tabId]}
+                               </button>
+                           ))}
+                        </div>
+                        <div className="max-h-[60vh] overflow-y-auto p-1">
+                            {/* Render tab content based on activeTab */}
+                            {activeTab === 'core' && <div>Core Profile content here...</div>}
+                            {activeTab === 'contacts' && <div>Key Contacts content here...</div>}
+                            {/* Add other tab content placeholders */}
+                        </div>
+                        <div className="mt-6 flex justify-end gap-4">
+                             <button type="submit" className="action-button font-bold py-2 px-4 rounded-md">Save Client</button>
+                        </div>
+                    </form>
+                </div>
+            );
+        };
         
         const DashboardView = ({ user, setCurrentView }) => {
             return (
