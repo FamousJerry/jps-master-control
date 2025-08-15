@@ -200,8 +200,9 @@
             const handleSaveClient = async (clientData) => {
                 if (clientData.id) {
                     // Update existing client
-                    const clientRef = db.collection("clients").doc(clientData.id);
-                    await clientRef.update(clientData);
+                    const { id, ...dataToSave } = clientData;
+                    const clientRef = db.collection("clients").doc(id);
+                    await clientRef.update(dataToSave);
                 } else {
                     // Add new client
                     const counterRef = db.collection("counters").doc("client");
