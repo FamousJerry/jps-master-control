@@ -89,6 +89,87 @@
             );
         };
         
+        const ClientForm = ({ client, onBack, onSave }) => {
+            const [activeTab, setActiveTab] = React.useState('core');
+            const [formData, setFormData] = React.useState(client || { contacts: [] });
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+            
+            const handleContactChange = (index, e) => {
+                const { name, value } = e.target;
+                const newContacts = [...formData.contacts];
+                newContacts[index][name] = value;
+                setFormData(prev => ({ ...prev, contacts: newContacts }));
+            };
+
+            const addContact = () => {
+                const newContacts = [...(formData.contacts || []), { name: '', title: '', email: '', phone: '' }];
+                setFormData(prev => ({...prev, contacts: newContacts}));
+            };
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                onSave(formData);
+            };
+
+            const tabs = {
+                core: 'Core Profile',
+                contacts: 'Key Contacts',
+                locations: 'Locations',
+                sales: 'Sales & Pipeline',
+            };
+
+            return (
+                <div className="bg-[#1f1f1f] p-6 rounded-lg">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-3xl font-bold">{client ? `Editing ${client.clientId}` : 'Add New Client'}</h2>
+                        <button onClick={onBack} className="text-sm text-gray-400 hover:text-white">&larr; Back to List</button>
+                    </div>
+                    <form onSubmit={handleSave}>
+                        <div className="mb-4 border-b border-gray-700 flex space-x-2">
+                           {Object.keys(tabs).map(tabId => (
+                               <button key={tabId} type="button" onClick={() => setActiveTab(tabId)} className={`py-2 px-4 rounded-t-md text-sm tab-button ${activeTab === tabId ? 'active' : ''}`}>
+                                   {tabs[tabId]}
+                               </button>
+                           ))}
+                        </div>
+                        <div className="max-h-[60vh] overflow-y-auto p-1 space-y-4">
+                            <div className={`tab-content ${activeTab === 'core' ? 'active' : ''}`}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="text-sm">Company Legal Name</label><input name="legalName" value={formData.legalName || ''} onChange={handleChange} type="text" className="form-input" /></div>
+                                    <div><label className="text-sm">Trading Name</label><input name="tradingName" value={formData.tradingName || ''} onChange={handleChange} type="text" className="form-input" /></div>
+                                    <div><label className="text-sm">Industry</label><select name="industry" value={formData.industry || ''} onChange={handleChange} className="form-input"><option>TV</option><option>Film</option><option>Events</option><option>Corporate</option></select></div>
+                                    <div><label className="text-sm">Tax ID / VAT ID</label><input name="taxId" value={formData.taxId || ''} onChange={handleChange} type="text" className="form-input" /></div>
+                                </div>
+                            </div>
+                             <div className={`tab-content ${activeTab === 'contacts' ? 'active' : ''}`}>
+                                {formData.contacts && formData.contacts.map((contact, index) => (
+                                    <div key={index} className="p-4 border border-gray-700 rounded-lg space-y-2 mb-4">
+                                        <h4 className="font-semibold">Contact #{index + 1}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div><label className="text-sm">Name</label><input name="name" value={contact.name} onChange={(e) => handleContactChange(index, e)} type="text" className="form-input" /></div>
+                                            <div><label className="text-sm">Title</label><input name="title" value={contact.title} onChange={(e) => handleContactChange(index, e)} type="text" className="form-input" /></div>
+                                            <div><label className="text-sm">Email</label><input name="email" value={contact.email} onChange={(e) => handleContactChange(index, e)} type="email" className="form-input" /></div>
+                                            <div><label className="text-sm">Phone</label><input name="phone" value={contact.phone} onChange={(e) => handleContactChange(index, e)} type="text" className="form-input" /></div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button type="button" onClick={addContact} className="text-sm text-green-400 hover:text-green-300 mt-4">+ Add Contact</button>
+                            </div>
+                             <div className={`tab-content ${activeTab === 'locations' ? 'active' : ''}`}>Locations content here...</div>
+                             <div className={`tab-content ${activeTab === 'sales' ? 'active' : ''}`}>Sales & Pipeline content here...</div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-4">
+                             <button type="submit" className="action-button font-bold py-2 px-4 rounded-md">Save Client</button>
+                        </div>
+                    </form>
+                </div>
+            );
+        };
+
         const ClientCentralView = () => {
             const [clients, setClients] = React.useState([]);
             const [view, setView] = React.useState('list'); // 'list' or 'form'
@@ -114,7 +195,30 @@
             
             const handleBackToList = () => {
                 setView('list');
-            }
+            };
+            
+            const handleSaveClient = async (clientData) => {
+                if (clientData.id) {
+                    // Update existing client
+                    const clientRef = db.collection("clients").doc(clientData.id);
+                    await clientRef.update(clientData);
+                } else {
+                    // Add new client
+                    const counterRef = db.collection("counters").doc("client");
+                    const newId = await db.runTransaction(async (transaction) => {
+                        const counterDoc = await transaction.get(counterRef);
+                        if (!counterDoc.exists) {
+                            transaction.set(counterRef, { current_value: 100001 });
+                            return 100001;
+                        }
+                        const newCount = counterDoc.data().current_value + 1;
+                        transaction.update(counterRef, { current_value: newCount });
+                        return newCount;
+                    });
+                    await db.collection("clients").add({ ...clientData, clientId: `CL-${newId}` });
+                }
+                setView('list');
+            };
 
             return (
                  <div>
@@ -139,59 +243,11 @@
                         </div>
                     )}
                     {view === 'form' && (
-                        <ClientForm client={editingClient} onBack={handleBackToList} />
+                        <ClientForm client={editingClient} onBack={handleBackToList} onSave={handleSaveClient} />
                     )}
                 </div>
             )
         }
-
-        const ClientForm = ({ client, onBack }) => {
-            const [activeTab, setActiveTab] = React.useState('core');
-            const [formData, setFormData] = React.useState(client || {});
-
-            const handleSave = (e) => {
-                e.preventDefault();
-                // Logic to save formData to Firestore would go here
-                alert("Saving client data... (functionality to be fully implemented)");
-                onBack();
-            };
-
-            const tabs = {
-                core: 'Core Profile',
-                contacts: 'Key Contacts',
-                locations: 'Locations',
-                sales: 'Sales & Pipeline',
-                integration: 'Integration',
-                files: 'Files & Compliance',
-            };
-
-            return (
-                <div className="bg-[#1f1f1f] p-6 rounded-lg">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-3xl font-bold">{client ? `Editing ${client.clientId}` : 'Add New Client'}</h2>
-                        <button onClick={onBack} className="text-sm text-gray-400 hover:text-white">&larr; Back to List</button>
-                    </div>
-                    <form onSubmit={handleSave}>
-                        <div className="mb-4 border-b border-gray-700 flex space-x-2">
-                           {Object.keys(tabs).map(tabId => (
-                               <button key={tabId} type="button" onClick={() => setActiveTab(tabId)} className={`py-2 px-4 rounded-t-md text-sm tab-button ${activeTab === tabId ? 'active' : ''}`}>
-                                   {tabs[tabId]}
-                               </button>
-                           ))}
-                        </div>
-                        <div className="max-h-[60vh] overflow-y-auto p-1">
-                            {/* Render tab content based on activeTab */}
-                            {activeTab === 'core' && <div>Core Profile content here...</div>}
-                            {activeTab === 'contacts' && <div>Key Contacts content here...</div>}
-                            {/* Add other tab content placeholders */}
-                        </div>
-                        <div className="mt-6 flex justify-end gap-4">
-                             <button type="submit" className="action-button font-bold py-2 px-4 rounded-md">Save Client</button>
-                        </div>
-                    </form>
-                </div>
-            );
-        };
         
         const DashboardView = ({ user, setCurrentView }) => {
             return (
