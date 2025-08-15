@@ -283,7 +283,7 @@
 
             // --- DOM ELEMENTS ---
             const loginView = document.getElementById('login-view'), mainAppView = document.getElementById('main-app-view'), adminNavLink = document.getElementById('admin-nav-link'), loginForm = document.getElementById('login-form'), logoutButton = document.getElementById('logout-button'), userDisplayName = document.getElementById('user-display-name'), userDisplayRole = document.getElementById('user-display-role'), mainNav = document.getElementById('mainNav'), createUserForm = document.getElementById('create-user-form'), userList = document.getElementById('user-list'), newUserRoleSelect = document.getElementById('new-user-role');
-            const clientListView = document.getElementById('client-list-view'), addClientView = document.getElementById('add-client-view'), showAddClientFormBtn = document.getElementById('show-add-client-form-btn'), backToClientListBtn = document.getElementById('back-to-client-list-btn'), addClientForm = document.getElementById('add-client-form'), clientList = document.getElementById('client-list'), deleteClientBtn = document.getElementById('delete-client-btn');
+            const clientListView = document.getElementById('client-list-view'), addClientView = document.getElementById('add-client-view'), showAddClientFormBtn = document.getElementById('show-add-client-form-btn'), backToClientListBtn = document.getElementById('back-to-client-list-btn'), clientForm = document.getElementById('client-form'), clientList = document.getElementById('client-list'), deleteClientBtn = document.getElementById('delete-client-btn');
             const addItemForm = document.getElementById('add-item-form'), inventoryList = document.getElementById('inventory-list'), editItemModal = document.getElementById('edit-item-modal'), editItemForm = document.getElementById('edit-item-form'), closeEditItemModalBtn = document.getElementById('close-edit-item-modal-btn'), deleteItemBtn = document.getElementById('delete-item-btn'), modalItemId = document.getElementById('modal-item-id');
             const addQuoteForm = document.getElementById('add-quote-form'), quoteClientSelect = document.getElementById('quote-client'), quoteLineItems = document.getElementById('quote-line-items'), addLineItemBtn = document.getElementById('add-line-item-btn'), quoteTotal = document.getElementById('quote-total'), quoteList = document.getElementById('quote-list');
             const calendarGrid = document.getElementById('calendar-grid'), currentWeekDisplay = document.getElementById('current-week-display'), addJobBtn = document.getElementById('add-job-btn'), addJobModal = document.getElementById('add-job-modal'), addJobForm = document.getElementById('add-job-form'), closeAddJobModalBtn = document.getElementById('close-add-job-modal-btn'), jobClientSelect = document.getElementById('job-client');
@@ -360,17 +360,7 @@
             backToClientListBtn.addEventListener('click', () => { addClientView.classList.add('hidden-view'); clientListView.classList.remove('hidden-view'); });
             
             function renderClientForm(client = {}) {
-                const isEditing = !!client.id;
-                document.getElementById('client-form-title').textContent = isEditing ? `Editing ${client.clientId}` : 'Add New Client';
-                const form = document.getElementById('add-client-form');
-                // ... This is where the full tabbed form would be built ...
-                // For now, using a simplified version for brevity
-                form.innerHTML = `
-                    <input type="hidden" id="client-id" value="${client.id || ''}">
-                    <div><label class="text-sm">Company Legal Name</label><input type="text" id="client-legalName" class="form-input" value="${client.legalName || ''}"></div>
-                    <div><label class="text-sm">Trading Name</label><input type="text" id="client-tradingName" class="form-input" value="${client.tradingName || ''}"></div>
-                    <!-- Add more fields here -->
-                `;
+                // ... implementation for detailed client form ...
             }
 
             // --- INVENTORY LOGIC ---
