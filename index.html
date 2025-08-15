@@ -242,15 +242,16 @@
             },
             Tech: {
                 nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
-                canEditInventory: false
+                canEditInventory: false,
+                canRequestJobChange: true
             },
             'Jr Tech': {
                 nav: ['dashboard-view', 'inventory-view', 'scheduling-view'],
                 canEditInventory: false
             },
             Driver: {
-                nav: ['dashboard-view', 'scheduling-view', 'inventory-view'],
-                canAddInventory: false, canEditInventory: false,
+                nav: ['dashboard-view', 'scheduling-view'],
+                canRequestJobChange: true
             },
             'Team Member': {
                 nav: ['dashboard-view']
@@ -267,10 +268,7 @@
         const adminOverrideModal = document.getElementById('admin-override-modal'), adminOverrideForm = document.getElementById('admin-override-form'), closeAdminOverrideModalBtn = document.getElementById('close-admin-override-modal-btn'), adminOverrideError = document.getElementById('admin-override-error');
         
         // --- INITIAL SETUP ---
-        function populateRoleDropdowns() {
-            const roleOptions = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
-            newUserRoleSelect.innerHTML = roleOptions;
-        }
+        function populateRoleDropdowns() { const roleOptions = allRoles.map(r => `<option value="${r}">${r}</option>`).join(''); newUserRoleSelect.innerHTML = roleOptions; }
         populateRoleDropdowns();
 
         // --- AUTH & ROLE CHECK ---
@@ -280,11 +278,8 @@
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     if (userData.role === 'Disabled') { alert("Your account has been disabled. Please contact an administrator."); signOut(auth); return; }
-                    currentUserRole = userData.role;
-                    currentUserName = userData.name;
-                    currentUserEmail = userData.email;
-                    userDisplayName.textContent = userData.name;
-                    userDisplayRole.textContent = userData.role;
+                    currentUserRole = userData.role; currentUserName = userData.name; currentUserEmail = userData.email;
+                    userDisplayName.textContent = userData.name; userDisplayRole.textContent = userData.role;
                     applyPermissions(currentUserRole);
                 }
                 loginView.style.display = 'none'; mainAppView.style.display = 'block';
@@ -316,21 +311,15 @@
         createUserForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const { 'new-user-name': name, 'new-user-email': email, 'new-user-password': password, 'new-user-role': role } = createUserForm.elements;
-            
-            // Create a temporary, secondary app instance to create the user without logging them in
             const secondaryApp = initializeSecondaryApp(firebaseConfig, `secondary-app-${Date.now()}`);
             const secondaryAuth = getAuth(secondaryApp);
-
             try {
                 const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email.value, password.value);
                 await setDoc(doc(db, "users", userCredential.user.uid), { name: name.value, email: email.value, role: role.value });
                 alert(`Successfully created user: ${name.value}`);
                 createUserForm.reset();
-            } catch (error) {
-                alert("Error creating user: " + error.message);
-            }
+            } catch (error) { alert("Error creating user: " + error.message); }
         });
-
         function listenForUsers() { onSnapshot(collection(db, "users"), (snapshot) => { userList.innerHTML = ''; snapshot.forEach((doc) => { const user = { id: doc.id, ...doc.data() }; const userCard = document.createElement('div'); userCard.className = 'bg-gray-700 p-3 rounded-lg flex justify-between items-center'; userCard.innerHTML = `<div><p class="font-semibold">${user.name}</p><p class="text-xs text-gray-400">${user.email} - ${user.role}</p></div>`; if (currentUserRole === 'Admin') { const editBtn = document.createElement('button'); editBtn.className = 'text-sm text-green-400 hover:text-green-300'; editBtn.textContent = 'Edit'; editBtn.onclick = () => openEditUserModal(user); userCard.appendChild(editBtn); } userList.appendChild(userCard); }); }); }
         function openEditUserModal(user) { editUserForm['edit-user-id'].value = user.id; modalUserEmail.textContent = user.email; const roleSelect = editUserForm['edit-user-role']; roleSelect.innerHTML = allRoles.map(r => `<option value="${r}" ${r === user.role ? 'selected' : ''}>${r}</option>`).join(''); editUserModal.classList.remove('hidden'); }
         closeEditUserModalBtn.addEventListener('click', () => editUserModal.classList.add('hidden'));
@@ -368,7 +357,7 @@
 
         // --- JOB SCHEDULING LOGIC ---
         let currentJobs = []; let weekOffset = 0;
-        function renderSchedule() { calendarGrid.innerHTML = ''; const today = new Date(); today.setDate(today.getDate() + (weekOffset * 7)); const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)); currentWeekDisplay.textContent = `Week of ${startOfWeek.toLocaleDateString()}`; for (let i = 0; i < 7; i++) { const day = new Date(startOfWeek); day.setDate(day.getDate() + i); const dayColumn = document.createElement('div'); dayColumn.className = 'day-column'; dayColumn.innerHTML = `<h4 class="font-bold text-center mb-4">${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</h4>`; const jobsForDay = currentJobs.filter(job => new Date(job.date).toDateString() === day.toDateString()); jobsForDay.forEach(job => { const jobCard = document.createElement('div'); jobCard.className = 'job-card'; jobCard.innerHTML = `<p class="font-bold">${job.title}</p><p class="text-sm text-gray-300">${job.clientId}</p><p class="text-xs text-gray-400 mt-2">Team: ${job.team.join(', ')}</p>`; dayColumn.appendChild(jobCard); }); calendarGrid.appendChild(dayColumn); } }
+        function renderSchedule() { calendarGrid.innerHTML = ''; const today = new Date(); today.setDate(today.getDate() + (weekOffset * 7)); const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)); currentWeekDisplay.textContent = `Week of ${startOfWeek.toLocaleDateString()}`; for (let i = 0; i < 7; i++) { const day = new Date(startOfWeek); day.setDate(day.getDate() + i); const dayColumn = document.createElement('div'); dayColumn.className = 'day-column'; dayColumn.innerHTML = `<h4 class="font-bold text-center mb-4">${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</h4>`; const jobsForDay = currentJobs.filter(job => new Date(job.date).toDateString() === day.toDateString()); jobsForDay.forEach(job => { const jobCard = document.createElement('div'); jobCard.className = 'job-card'; let cardHTML = `<p class="font-bold">${job.title}</p><p class="text-sm text-gray-300">${job.clientId}</p><p class="text-xs text-gray-400 mt-2">Team: ${job.team.join(', ')}</p>`; const userPermissions = permissions[currentUserRole] || {}; if(userPermissions.canRequestJobChange && job.team.includes(currentUserName)) { cardHTML += `<button class="text-xs text-yellow-400 hover:text-yellow-300 mt-2">Request Change</button>`; } jobCard.innerHTML = cardHTML; dayColumn.appendChild(jobCard); }); calendarGrid.appendChild(dayColumn); } }
         function listenForJobs() { onSnapshot(collection(db, "jobs"), (snapshot) => { currentJobs = []; snapshot.forEach((doc) => { currentJobs.push({ id: doc.id, ...doc.data() }); }); renderSchedule(); }); }
         addJobBtn.addEventListener('click', () => addJobModal.classList.remove('hidden'));
         closeAddJobModalBtn.addEventListener('click', () => addJobModal.classList.add('hidden'));
@@ -379,5 +368,4 @@
         document.querySelectorAll('.module-card').forEach(card => { card.addEventListener('click', (e) => { const viewId = e.currentTarget.dataset.view; if(viewId) document.querySelector(`.nav-link[data-view="${viewId}"]`).click(); }); });
     </script>
 </body>
-</html
-    
+</html>
