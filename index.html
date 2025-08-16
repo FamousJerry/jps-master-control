@@ -25,7 +25,7 @@
         .nav-link.active-nav { color: #39FF14; font-weight: 700; }
         .form-input { background-color: #333; border: 1px solid #555; border-radius: 4px; padding: 12px 16px; width: 100%; color: #fff; transition: border-color 0.3s; }
         .form-input:focus { outline: none; border-color: #39FF14; }
-        .module-card { background-color: #2F2F2F; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .module-card { background-color: #2F2F2F; transition: transform 0.3s ease, box-shadow 0.3s ease; aspect-ratio: 4 / 3; }
         .module-card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         .tab-button { background-color: #333; }
         .tab-button.active { background-color: #39FF14; color: #141414; font-weight: bold; }
@@ -125,9 +125,9 @@
                     <h2 className="text-3xl font-bold mb-6">Dashboard</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                        {availableModules.filter(m => userPermissions.nav.includes(m.id)).map(module => (
-                           <div key={module.id} onClick={() => setCurrentView(module.id)} className="module-card p-4 rounded-lg cursor-pointer">
-                               <h3 className="font-bold text-lg">{module.name}</h3>
-                               <p className="text-sm text-gray-400">{module.desc}</p>
+                           <div key={module.id} onClick={() => setCurrentView(module.id)} className="module-card p-6 flex flex-col justify-center rounded-lg cursor-pointer">
+                               <h3 className="font-bold text-xl">{module.name}</h3>
+                               <p className="text-sm text-gray-400 mt-2">{module.desc}</p>
                            </div>
                        ))}
                     </div>
