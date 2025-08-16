@@ -12,9 +12,9 @@ RUN npm --prefix web run build
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Server deps
+# Server deps (fallback if no lockfile)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev || npm install --omit=dev
 
 # App server and built frontend
 COPY server.js ./
