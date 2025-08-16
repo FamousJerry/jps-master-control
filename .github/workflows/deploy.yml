@@ -45,9 +45,27 @@ jobs:
           cd -
           firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
-      - name: Build container (Cloud Build)
-        run: |
-          gcloud builds submit --tag gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}
+     - name: Build container (Cloud Build)
+  run: |
+    set -euo pipefail
+    IMAGE="gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}"
+    echo "Submitting Cloud Build for $IMAGE"
+    BUILD_ID="$(gcloud builds submit --tag "$IMAGE" --async --format='value(id)')"
+    echo "Build ID: $BUILD_ID"
+
+    # Poll build status without streaming logs
+    while true; do
+      STATUS="$(gcloud builds describe "$BUILD_ID" --format='value(status)')"
+      echo "Cloud Build status: $STATUS"
+      case "$STATUS" in
+        SUCCESS) break ;;
+        FAILURE|CANCELLED|EXPIRED)
+          echo "::error::Cloud Build failed with status $STATUS"
+          exit 1
+          ;;
+        *) sleep 5 ;;
+      esac
+    done
 
       - name: Deploy to Cloud Run
         run: |
