@@ -5,7 +5,6 @@ on:
     branches: ["fresh_start", "main"]
 
 jobs:
-
   deploy:
     runs-on: ubuntu-latest
     permissions:
@@ -40,39 +39,37 @@ jobs:
 
       - name: Deploy Firestore rules & Functions
         run: |
+          set -e
           cd functions
           npm ci || npm install
           npm run build
           cd -
           firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
-     - name: Build container (Cloud Build)
-  run: |
-    set -euo pipefail
-    IMAGE="gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}"
-    echo "Submitting Cloud Build for $IMAGE"
-    BUILD_ID="$(gcloud builds submit --tag "$IMAGE" --async --format='value(id)')"
-    echo "Build ID: $BUILD_ID"
-
-    # Poll build status without streaming logs
-    while true; do
-      STATUS="$(gcloud builds describe "$BUILD_ID" --format='value(status)')"
-      echo "Cloud Build status: $STATUS"
-      case "$STATUS" in
-        SUCCESS) break ;;
-        FAILURE|CANCELLED|EXPIRED)
-          echo "::error::Cloud Build failed with status $STATUS"
-          exit 1
-          ;;
-        *) sleep 5 ;;
-      esac
-    done
+      - name: Build container (Cloud Build)
+        run: |
+          set -euo pipefail
+          IMAGE="gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}"
+          echo "Submitting Cloud Build for $IMAGE"
+          BUILD_ID="$(gcloud builds submit --tag "$IMAGE" --async --format='value(id)')"
+          echo "Build ID: $BUILD_ID"
+          # poll status without streaming logs (avoids log-bucket permission issue)
+          while true; do
+            STATUS="$(gcloud builds describe "$BUILD_ID" --format='value(status)')"
+            echo "Cloud Build status: $STATUS"
+            case "$STATUS" in
+              SUCCESS) break ;;
+              FAILURE|CANCELLED|EXPIRED) echo "::error::Cloud Build failed with status $STATUS"; exit 1 ;;
+              *) sleep 5 ;;
+            esac
+          done
 
       - name: Deploy to Cloud Run
         run: |
+          set -e
           gcloud run deploy $IMAGE_NAME \
             --image gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }} \
-            --region $GCP_REGION \
+            --region "$GCP_REGION" \
             --allow-unauthenticated \
             --port 8080 \
             --memory 512Mi \
