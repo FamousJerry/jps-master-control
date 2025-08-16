@@ -17,20 +17,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Preflight — repo claim must match provider condition
-  run: |
-    echo "This run is for repo: ${{ github.repository }}"
-    test "${{ github.repository }}" = "FamousJerry/jps-master-control" \
-      || (echo "::error::Repo mismatch vs provider condition"; exit 1)
 
+      - name: Preflight — repo claim must match provider condition
+        run: |
+          echo "Repo: ${{ github.repository }}"
+          test "${{ github.repository }}" = "FamousJerry/jps-master-control" \
+            || (echo "::error::Repo mismatch vs provider condition"; exit 1)
 
       - id: auth
-  uses: google-github-actions/auth@v2
-  with:
-    workload_identity_provider: projects/532726782263/locations/global/workloadIdentityPools/github/providers/github-provider
-    service_account: github-deployer@jps-app-468911.iam.gserviceaccount.com
-
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/532726782263/locations/global/workloadIdentityPools/github/providers/github-provider
+          service_account: github-deployer@jps-app-468911.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -60,4 +58,4 @@ jobs:
             --cpu 1 \
             --max-instances 20 \
             --min-instances 0 \
-            --timeout 60s 
+            --timeout 60s
