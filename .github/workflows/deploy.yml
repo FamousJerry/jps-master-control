@@ -21,8 +21,10 @@ jobs:
       - name: Preflight — repo claim must match provider condition
         run: |
           echo "Repo: ${{ github.repository }}"
-          test "${{ github.repository }}" = "FamousJerry/jps-master-control" \
-            || (echo "::error::Repo mismatch vs provider condition"; exit 1)
+          if [ "${{ github.repository }}" != "FamousJerry/jps-master-control" ]; then
+            echo "::error::Repo mismatch vs provider condition"
+            exit 1
+          fi
 
       - id: auth
         uses: google-github-actions/auth@v2
@@ -35,14 +37,13 @@ jobs:
       - name: Install Firebase CLI
         run: curl -sL https://firebase.tools | bash
 
-     - name: Deploy Firestore rules & Functions
-  run: |
-    cd functions
-    npm ci || npm install
-    npm run build
-    cd -
-    firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
-
+      - name: Deploy Firestore rules & Functions
+        run: |
+          cd functions
+          npm ci || npm install
+          npm run build
+          cd -
+          firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
       - name: Build container (Cloud Build)
         run: |
