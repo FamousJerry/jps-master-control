@@ -3,7 +3,8 @@ WORKDIR /app
 
 # Install web deps and build
 COPY web/package*.json web/
-RUN npm --prefix web ci
+# was: npm --prefix web ci
+RUN npm --prefix web ci || npm --prefix web install
 COPY web web
 RUN npm --prefix web run build
 
