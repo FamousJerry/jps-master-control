@@ -14,6 +14,8 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ secrets.GCP_REGION }}
       IMAGE_NAME: jps-web
+      REGISTRY: asia-southeast1-docker.pkg.dev   # Artifact Registry hostname
+      AR_REPO: jps                                # Artifact Registry repo name
 
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +35,8 @@ jobs:
           service_account: github-deployer@jps-app-468911.iam.gserviceaccount.com
 
       - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Install Firebase CLI
         run: curl -sL https://firebase.tools | bash
@@ -46,14 +50,15 @@ jobs:
           cd -
           firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
-      - name: Build container (Cloud Build)
+      - name: Build container (Cloud Build → Artifact Registry)
         run: |
           set -euo pipefail
-          IMAGE="gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}"
+          IMAGE="${{ env.REGISTRY }}/$GCP_PROJECT_ID/${{ env.AR_REPO }}/$IMAGE_NAME:${{ github.sha }}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
           echo "Submitting Cloud Build for $IMAGE"
           BUILD_ID="$(gcloud builds submit --tag "$IMAGE" --async --format='value(id)')"
           echo "Build ID: $BUILD_ID"
-          # poll status without streaming logs (avoids log-bucket permission issue)
+          # Poll status without log streaming (avoids default logs bucket perms)
           while true; do
             STATUS="$(gcloud builds describe "$BUILD_ID" --format='value(status)')"
             echo "Cloud Build status: $STATUS"
@@ -67,8 +72,8 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           set -e
-          gcloud run deploy $IMAGE_NAME \
-            --image gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }} \
+          gcloud run deploy "$IMAGE_NAME" \
+            --image "$IMAGE" \
             --region "$GCP_REGION" \
             --allow-unauthenticated \
             --port 8080 \
