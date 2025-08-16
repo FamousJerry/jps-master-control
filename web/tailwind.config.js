@@ -1,5 +1,5 @@
-export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
-  theme: { extend: { colors: { brand: "#39FF14" } } },
-  plugins: [],
+module.exports = {
+  content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
+  theme: { extend: {} },
+  plugins: []
 };
