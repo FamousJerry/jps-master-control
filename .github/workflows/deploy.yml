@@ -10,6 +10,10 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      IMAGE_NAME: jps-web
 
     steps:
       - uses: actions/checkout@v4
@@ -26,23 +30,22 @@ jobs:
         run: curl -sL https://firebase.tools | bash
 
       - name: Deploy Firestore rules & Functions
-  run: |
-    firebase use ${{ secrets.GCP_PROJECT_ID }}
-    cd functions
-    npm ci || npm install
-    npm run build
-    cd -
-    firebase deploy --only firestore:rules,functions
+        run: |
+          cd functions
+          npm ci || npm install
+          npm run build
+          cd -
+          firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions
 
       - name: Build container (Cloud Build)
         run: |
-          gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/jps-web:${{ github.sha }}
+          gcloud builds submit --tag gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy jps-web \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/jps-web:${{ github.sha }} \
-            --region ${{ secrets.GCP_REGION }} \
+          gcloud run deploy $IMAGE_NAME \
+            --image gcr.io/$GCP_PROJECT_ID/$IMAGE_NAME:${{ github.sha }} \
+            --region $GCP_REGION \
             --allow-unauthenticated \
             --port 8080 \
             --memory 512Mi \
