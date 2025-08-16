@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function authed() { return request.auth != null; }
+    function verified() { return authed() && request.auth.token.email_verified == true; }
+    function role() { return request.auth.token.role; }
+    function hasRole(r) { return verified() && role() == r; }
+    function anyRole(arr) { return verified() && arr.hasAny(role()); }
+
+    // Default deny
+    match /{document=**} { allow read, write: if false; }
+
+    // Users
+    match /users/{uid} {
+      allow read: if verified() && (request.auth.uid == uid || hasRole('Admin'));
+      allow write: if hasRole('Admin');
+    }
+
+    // Clients
+    match /clients/{id} {
+      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
+      allow write: if anyRole(['Admin','Sales']);
+    }
+
+    // Client contacts (subcollection)
+    match /clients/{id}/contacts/{cid} {
+      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech']);
+      allow write: if anyRole(['Admin','Sales']);
+    }
+
+    // Activities (append-only)
+    match /activities/{id} {
+      allow read: if anyRole(['Admin','Sales','Scheduler','Tech']);
+      allow create: if anyRole(['Admin','Sales','Scheduler','Tech']);
+      allow update, delete: if false;
+    }
+
+    // Inventory
+    match /inventoryItems/{id} {
+      allow read: if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
+      allow write: if anyRole(['Admin','Warehouse Manager']);
+    }
+
+    match /kits/{id} {
+      allow read: if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
+      allow write: if anyRole(['Admin','Warehouse Manager']);
+    }
+
+    // Inventory events (append-only)
+    match /inventoryEvents/{id} {
+      allow read: if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
+      allow create: if anyRole(['Admin','Tech','Warehouse Manager','Warehouse Staff']);
+      allow update, delete: if false;
+    }
+
+    // Deals / Quotes
+    match /deals/{id} { allow read: if anyRole(['Admin','Sales','Scheduler']); allow write: if anyRole(['Admin','Sales']); }
+    match /quotes/{id} { allow read: if anyRole(['Admin','Sales']); allow write: if anyRole(['Admin','Sales']); }
+
+    // Jobs / Assignments
+    match /jobs/{id} { allow read: if anyRole(['Admin','Sales','Scheduler','Warehouse Manager','Warehouse Staff']); allow write: if anyRole(['Admin','Scheduler']); }
+    match /assignments/{id} { allow read: if anyRole(['Admin','Sales','Scheduler','Warehouse Manager','Warehouse Staff']); allow write: if anyRole(['Admin','Scheduler']); }
+
+    // Counters — never client-writable
+    match /counters/{id} { allow read: if hasRole('Admin'); allow write: if false; }
+
+    // Audits — write-only for clients; read by Admin
+    match /audits/{id} { allow read: if hasRole('Admin'); allow create: if verified(); allow update, delete: if false; }
+  }
+}
