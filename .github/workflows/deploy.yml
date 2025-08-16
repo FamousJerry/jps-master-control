@@ -35,13 +35,14 @@ jobs:
       - name: Install Firebase CLI
         run: curl -sL https://firebase.tools | bash
 
-      - name: Deploy Firestore rules & Functions
-        run: |
-          cd functions
-          npm ci || npm install
-          npm run build
-          cd -
-          firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions
+     - name: Deploy Firestore rules & Functions
+  run: |
+    cd functions
+    npm ci || npm install
+    npm run build
+    cd -
+    firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
+
 
       - name: Build container (Cloud Build)
         run: |
