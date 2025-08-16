@@ -1,16 +1,18 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
   "hosting": {
     "public": "web/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "trailingSlash": false,
-
-    // SPA fallback so client-side routes work
     "rewrites": [
       { "source": "**", "destination": "/index.html" }
     ],
-
-    // Sensible cache headers
     "headers": [
       {
         "source": "**/*.@(js|css|woff|woff2|png|jpg|svg)",
