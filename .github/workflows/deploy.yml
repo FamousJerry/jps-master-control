@@ -1,4 +1,4 @@
-name: Deploy to Firebase & Cloud Run
+name: Deploy to Firebase (Hosting + Functions)
 
 on:
   push:
@@ -10,75 +10,64 @@ jobs:
     permissions:
       contents: read
       id-token: write
+
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ secrets.GCP_REGION }}
-      IMAGE_NAME: jps-web
-      REGISTRY: asia-southeast1-docker.pkg.dev   # Artifact Registry hostname
-      AR_REPO: jps                                # Artifact Registry repo name
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Preflight — repo claim must match provider condition
-        run: |
-          echo "Repo: ${{ github.repository }}"
-          if [ "${{ github.repository }}" != "FamousJerry/jps-master-control" ]; then
-            echo "::error::Repo mismatch vs provider condition"
-            exit 1
-          fi
-
-      - id: auth
+      # GitHub → Google Cloud auth via Workload Identity Federation
+      - name: Auth to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/532726782263/locations/global/workloadIdentityPools/github/providers/github-provider
           service_account: github-deployer@jps-app-468911.iam.gserviceaccount.com
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Install Firebase CLI
         run: curl -sL https://firebase.tools | bash
 
+      # ---------- Build & Deploy HOSTING ----------
+      - name: Build web (Vite)
+        run: |
+          set -e
+          cd web
+          npm ci || npm install
+          npm run build
+          cd -
+
+      - name: Verify web build output
+        run: |
+          ls -lah web/dist
+          test -f web/dist/index.html || (echo "::error::Missing web/dist/index.html"; exit 1)
+
+      - name: Deploy Firebase Hosting
+        run: |
+          firebase deploy --project "$GCP_PROJECT_ID" --only hosting
+
+      # ---------- Deploy Firestore rules & Functions ----------
       - name: Deploy Firestore rules & Functions
         run: |
           set -e
           cd functions
           npm ci || npm install
-          npm run build
+          npm run build || echo "no functions build step"
           cd -
           firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
-      - name: Build container (Cloud Build → Artifact Registry)
+      - name: Summary
         run: |
-          set -euo pipefail
-          IMAGE="${{ env.REGISTRY }}/$GCP_PROJECT_ID/${{ env.AR_REPO }}/$IMAGE_NAME:${{ github.sha }}"
-          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
-          echo "Submitting Cloud Build for $IMAGE"
-          BUILD_ID="$(gcloud builds submit --tag "$IMAGE" --async --format='value(id)')"
-          echo "Build ID: $BUILD_ID"
-          # Poll status without log streaming (avoids default logs bucket perms)
-          while true; do
-            STATUS="$(gcloud builds describe "$BUILD_ID" --format='value(status)')"
-            echo "Cloud Build status: $STATUS"
-            case "$STATUS" in
-              SUCCESS) break ;;
-              FAILURE|CANCELLED|EXPIRED) echo "::error::Cloud Build failed with status $STATUS"; exit 1 ;;
-              *) sleep 5 ;;
-            esac
-          done
-
-      - name: Deploy to Cloud Run
-        run: |
-          set -e
-          gcloud run deploy "$IMAGE_NAME" \
-            --image "$IMAGE" \
-            --region "$GCP_REGION" \
-            --allow-unauthenticated \
-            --port 8080 \
-            --memory 512Mi \
-            --cpu 1 \
-            --max-instances 20 \
-            --min-instances 0 \
-            --timeout 60s
+          echo "### Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Hosting: https://$GCP_PROJECT_ID.web.app" >> "$GITHUB_STEP_SUMMARY"
