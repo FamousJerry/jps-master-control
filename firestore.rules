@@ -1,9 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function isSignedIn() { return request.auth != null; }
+    function isOwner() {
+      // Use the exact email you see in the app header
+      return request.auth != null
+        && request.auth.token.email in [
+          "jerry@jingjaipost.com",
+          "jerrymsawyer@gmail.com"
+        ];
+    }
+
+    // Everything is private to owner
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isOwner();
     }
   }
 }
