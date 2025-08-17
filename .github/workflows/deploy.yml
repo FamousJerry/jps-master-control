@@ -1,73 +1,64 @@
-name: Deploy to Firebase (Hosting + Functions)
+name: Deploy to Firebase (manual)
 
 on:
-  push:
-    branches: ["fresh_start", "main"]
+  workflow_dispatch:  # <-- manual trigger only
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+  FIREBASE_CLI_LOGIN: ci
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ secrets.GCP_REGION }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # GitHub → Google Cloud auth via Workload Identity Federation
-      - name: Auth to Google Cloud
+      # Google auth via Workload Identity Federation
+      - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/532726782263/locations/global/workloadIdentityPools/github/providers/github-provider
-          service_account: github-deployer@jps-app-468911.iam.gserviceaccount.com
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT_EMAIL }}
 
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-
-      - name: Setup Node
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install Firebase CLI
         run: curl -sL https://firebase.tools | bash
 
-      # ---------- Build & Deploy HOSTING ----------
-      - name: Build web (Vite)
+      # Build the SPA
+      - name: Build web
         run: |
-          set -e
           cd web
           npm ci || npm install
           npm run build
           cd -
 
-      - name: Verify web build output
+      # Prebuild Functions (firebase.json also builds, this fails fast)
+      - name: Build functions
         run: |
-          ls -lah web/dist
-          test -f web/dist/index.html || (echo "::error::Missing web/dist/index.html"; exit 1)
-
-      - name: Deploy Firebase Hosting
-        run: |
-          firebase deploy --project "$GCP_PROJECT_ID" --only hosting
-
-      # ---------- Deploy Firestore rules & Functions ----------
-      - name: Deploy Firestore rules & Functions
-        run: |
-          set -e
           cd functions
           npm ci || npm install
-          npm run build || echo "no functions build step"
+          npm run build
           cd -
-          firebase deploy --project "$GCP_PROJECT_ID" --only firestore:rules,functions --force
 
-      - name: Summary
+      - name: Deploy Hosting + Functions
         run: |
-          echo "### Deployed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Hosting: https://$GCP_PROJECT_ID.web.app" >> "$GITHUB_STEP_SUMMARY"
+          firebase deploy --project "$GCP_PROJECT_ID" --only functions,hosting --force
