@@ -7,15 +7,14 @@
     "clean": "rimraf lib",
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w",
-    "lint": "eslint --ext .ts src || true"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "firebase-admin": "^12.5.0",
     "firebase-functions": "^5.0.1"
   },
   "devDependencies": {
-    "@types/node": "^20.5.0",
-    "eslint": "^8.57.0",
+    "@types/node": "^20.11.19",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.0"
   }
