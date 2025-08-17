@@ -1,14 +1,27 @@
 import React from "react";
 import {
-  collection, onSnapshot, addDoc, updateDoc, doc, runTransaction, serverTimestamp
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  runTransaction,
+  serverTimestamp,
 } from "firebase/firestore";
 import {
-  onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut,
-  setPersistence, browserLocalPersistence, User
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut as fbSignOut,
+  setPersistence,
+  browserLocalPersistence,
+  User,
 } from "firebase/auth";
 import { db, auth } from "./lib/firebase";
 
-/** ---------- App Shell with Auth gating ---------- */
+/** =========================================================
+ *  App (auth gate)
+ *  =======================================================*/
 
 type View = "dashboard" | "clients" | "inventory" | "sales" | "schedule";
 
@@ -18,9 +31,8 @@ export default function App() {
   const [authReady, setAuthReady] = React.useState(false);
 
   React.useEffect(() => {
-    // Persist sessions locally and establish listener
     setPersistence(auth, browserLocalPersistence)
-      .catch(() => {/* ignore if already set */})
+      .catch(() => {})
       .finally(() => {
         const unsub = onAuthStateChanged(auth, (u) => {
           setUser(u);
@@ -31,12 +43,13 @@ export default function App() {
   }, []);
 
   if (!authReady) {
-    return <div className="min-h-screen flex items-center justify-center text-neutral-300">Loading…</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#141414] text-neutral-300">
+        Loading…
+      </div>
+    );
   }
-
-  if (!user) {
-    return <LoginScreen />;
-  }
+  if (!user) return <LoginScreen />;
 
   return (
     <Shell current={view} onNavigate={setView} user={user} onLogout={() => fbSignOut(auth)}>
@@ -49,10 +62,12 @@ export default function App() {
   );
 }
 
-/** ---------- Login ---------- */
+/** =========================================================
+ *  Login
+ *  =======================================================*/
 
 function LoginScreen() {
-  const [err, setErr] = React.useState<string>("");
+  const [err, setErr] = React.useState("");
 
   async function signIn() {
     try {
@@ -67,7 +82,9 @@ function LoginScreen() {
   return (
     <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
-        <div className="text-2xl font-extrabold mb-1" style={{ color: "#39FF14" }}>Jingjai</div>
+        <div className="text-2xl font-extrabold mb-1" style={{ color: "#39FF14" }}>
+          Jingjai
+        </div>
         <div className="text-sm text-neutral-400 mb-6">Master Control</div>
         {err && <div className="mb-3 text-sm text-red-400">{err}</div>}
         <button
@@ -82,10 +99,16 @@ function LoginScreen() {
   );
 }
 
-/** ---------- Layout ---------- */
+/** =========================================================
+ *  Shell layout
+ *  =======================================================*/
 
 function Shell({
-  current, onNavigate, children, user, onLogout
+  current,
+  onNavigate,
+  children,
+  user,
+  onLogout,
 }: {
   current: View;
   onNavigate: (v: View) => void;
@@ -107,7 +130,9 @@ function Shell({
         {/* Sidebar */}
         <aside className="hidden md:flex md:w-64 flex-col border-r border-neutral-800/80 bg-neutral-950/60">
           <div className="px-5 py-4 border-b border-neutral-800">
-            <div className="text-2xl font-extrabold" style={{ color: "#39FF14" }}>Jingjai</div>
+            <div className="text-2xl font-extrabold" style={{ color: "#39FF14" }}>
+              Jingjai
+            </div>
             <div className="text-xs text-neutral-400">Master Control</div>
           </div>
           <nav className="p-3 space-y-1">
@@ -117,14 +142,18 @@ function Shell({
                 onClick={() => onNavigate(n.key)}
                 className={
                   "w-full text-left block px-3 py-2 rounded-lg text-sm transition " +
-                  (current === n.key ? "bg-[#39FF14] text-black font-semibold" : "hover:bg-neutral-800/60")
+                  (current === n.key
+                    ? "bg-[#39FF14] text-black font-semibold"
+                    : "hover:bg-neutral-800/60")
                 }
               >
                 {n.label}
               </button>
             ))}
           </nav>
-          <div className="mt-auto p-3 text-xs text-neutral-500">© {new Date().getFullYear()} Jingjai</div>
+          <div className="mt-auto p-3 text-xs text-neutral-500">
+            © {new Date().getFullYear()} Jingjai
+          </div>
         </aside>
 
         {/* Main */}
@@ -132,7 +161,9 @@ function Shell({
           {/* Top bar */}
           <header className="sticky top-0 z-40 backdrop-blur bg-neutral-950/50 border-b border-neutral-800">
             <div className="flex items-center justify-between px-4 py-3">
-              <div className="md:hidden text-lg font-bold" style={{ color: "#39FF14" }}>Jingjai</div>
+              <div className="md:hidden text-lg font-bold" style={{ color: "#39FF14" }}>
+                Jingjai
+              </div>
               <div className="flex items-center gap-3 text-sm text-neutral-300">
                 <span className="hidden sm:block">{user.email}</span>
                 <button
@@ -154,7 +185,9 @@ function Shell({
   );
 }
 
-/** ---------- Simple pages ---------- */
+/** =========================================================
+ *  Simple pages
+ *  =======================================================*/
 
 function Dashboard() {
   return (
@@ -164,12 +197,13 @@ function Dashboard() {
     </div>
   );
 }
-
 function Placeholder({ title }: { title: string }) {
   return <div className="p-2 text-neutral-300">{title} (coming soon)</div>;
 }
 
-/** ---------- Client Central (list + add/edit + counter) ---------- */
+/** =========================================================
+ *  Client Central
+ *  =======================================================*/
 
 type Contact = { name: string; title?: string; email?: string; phone?: string };
 type Client = {
@@ -180,6 +214,11 @@ type Client = {
   industry?: string;
   taxId?: string;
   contacts?: Contact[];
+  // audit
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
 };
 
 function ClientCentral({ user }: { user: User }) {
@@ -187,10 +226,9 @@ function ClientCentral({ user }: { user: User }) {
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Client | null>(null);
   const [form, setForm] = React.useState<Client>({ contacts: [] });
-  const [error, setError] = React.useState<string>("");
+  const [error, setError] = React.useState("");
 
   React.useEffect(() => {
-    // Guard until signed-in user exists
     if (!user) return;
     const unsub = onSnapshot(collection(db, "clients"), (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Client[];
@@ -205,35 +243,45 @@ function ClientCentral({ user }: { user: User }) {
     setError("");
     setOpen(true);
   }
-
   function startEdit(c: Client) {
     setEditing(c);
     setForm({ ...c, contacts: c.contacts ?? [] });
     setError("");
     setOpen(true);
   }
-
   function change<K extends keyof Client>(k: K, v: Client[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
+  function addContact() {
+    setForm((f) => ({
+      ...f,
+      contacts: [...(f.contacts || []), { name: "", title: "", email: "", phone: "" }],
+    }));
+  }
 
   async function save() {
-    setError("");
-    if (!form.tradingName?.trim() && !form.legalName?.trim()) {
-      setError("Enter at least a Trading Name or Legal Name.");
-      return;
-    }
-    const payload: Client = {
-      legalName: form.legalName?.trim() || "",
-      tradingName: form.tradingName?.trim() || "",
-      industry: form.industry || "",
-      taxId: form.taxId || "",
-      contacts: (form.contacts || []).map((c) => ({ ...c, name: c.name?.trim() || "" })),
-    };
-
     try {
+      setError("");
+      if (!form.tradingName?.trim() && !form.legalName?.trim()) {
+        setError("Enter at least a Trading Name or Legal Name.");
+        return;
+      }
+
+      const payload: Omit<Client, "id"> = {
+        legalName: form.legalName?.trim() || "",
+        tradingName: form.tradingName?.trim() || "",
+        industry: form.industry || "",
+        taxId: form.taxId || "",
+        contacts: (form.contacts || []).map((c) => ({ ...c, name: c.name?.trim() || "" })),
+      };
+
+      const meta = {
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email || null,
+      };
+
       if (editing?.id) {
-        await updateDoc(doc(db, "clients", editing.id), payload as any);
+        await updateDoc(doc(db, "clients", editing.id), { ...payload, ...meta } as any);
       } else {
         const counterRef = doc(db, "counters", "client");
         const newId = await runTransaction(db, async (tx) => {
@@ -243,16 +291,20 @@ function ClientCentral({ user }: { user: User }) {
           tx.set(counterRef, { current_value: next }, { merge: true });
           return next;
         });
-        await addDoc(collection(db, "clients"), { ...payload, clientId: `CL-${newId}` });
+
+        await addDoc(collection(db, "clients"), {
+          ...payload,
+          clientId: `CL-${newId}`,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || null,
+          ...meta,
+        } as any);
       }
+
       setOpen(false);
     } catch (e: any) {
-      setError(e?.message || "Failed to save client (check Firestore rules & auth).");
+      setError(e?.message || "Failed to save client (check rules & auth).");
     }
-  }
-
-  function addContact() {
-    setForm((f) => ({ ...f, contacts: [...(f.contacts || []), { name: "", title: "", email: "", phone: "" }] }));
   }
 
   return (
@@ -277,7 +329,9 @@ function ClientCentral({ user }: { user: User }) {
           >
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-lg font-semibold">{c.tradingName || c.legalName || "Unnamed"}</div>
+                <div className="text-lg font-semibold">
+                  {c.tradingName || c.legalName || "Unnamed"}
+                </div>
                 <div className="text-xs text-neutral-400">{c.industry}</div>
               </div>
               <div className="text-xs text-neutral-500">{c.clientId ?? "N/A"}</div>
@@ -285,97 +339,113 @@ function ClientCentral({ user }: { user: User }) {
           </div>
         ))}
         {clients.length === 0 && (
-          <div className="text-neutral-400 text-sm border border-dashed border-neutral-800 rounded-lg p-8">
-            No clients yet. Click <span className="font-semibold">+ Add Client</span> to create your first record.
-          </div>
+          <EmptyCard text="+ Add Client to create your first record." />
         )}
       </div>
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
-          <div className="absolute inset-0 flex items-center justify-center p-3">
-            <div className="w-full max-w-3xl rounded-xl border border-neutral-800 bg-neutral-950">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-                <div className="text-lg font-bold">{editing ? "Edit Client" : "Add Client"}</div>
-                <button className="text-neutral-400 hover:text-white" onClick={() => setOpen(false)}>✕</button>
-              </div>
-              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <L label="Company Legal Name">
-                    <I value={form.legalName || ""} onChange={(e) => change("legalName", e.target.value)} />
-                  </L>
-                  <L label="Trading Name">
-                    <I value={form.tradingName || ""} onChange={(e) => change("tradingName", e.target.value)} />
-                  </L>
-                  <L label="Industry">
-                    <select
-                      className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
-                      value={form.industry || ""}
-                      onChange={(e) => change("industry", e.target.value)}
-                    >
-                      <option value="">—</option>
-                      <option>TV</option>
-                      <option>Film</option>
-                      <option>Events</option>
-                      <option>Corporate</option>
-                    </select>
-                  </L>
-                  <L label="Tax / VAT ID">
-                    <I value={form.taxId || ""} onChange={(e) => change("taxId", e.target.value)} />
-                  </L>
-                </div>
-
-                <div className="border-t border-neutral-800 pt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="font-semibold">Key Contacts</div>
-                    <button className="text-sm text-[#39FF14]" onClick={addContact}>+ Add Contact</button>
-                  </div>
-                  {(form.contacts || []).map((ct, idx) => (
-                    <div key={idx} className="grid md:grid-cols-4 gap-3 mb-3">
-                      <I placeholder="Name" value={ct.name || ""} onChange={(e) => {
-                        const list = [...(form.contacts || [])];
-                        list[idx] = { ...list[idx], name: e.target.value }; change("contacts", list);
-                      }} />
-                      <I placeholder="Title" value={ct.title || ""} onChange={(e) => {
-                        const list = [...(form.contacts || [])];
-                        list[idx] = { ...list[idx], title: e.target.value }; change("contacts", list);
-                      }} />
-                      <I placeholder="Email" type="email" value={ct.email || ""} onChange={(e) => {
-                        const list = [...(form.contacts || [])];
-                        list[idx] = { ...list[idx], email: e.target.value }; change("contacts", list);
-                      }} />
-                      <I placeholder="Phone" value={ct.phone || ""} onChange={(e) => {
-                        const list = [...(form.contacts || [])];
-                        list[idx] = { ...list[idx], phone: e.target.value }; change("contacts", list);
-                      }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-neutral-800">
-                <button className="px-4 py-2 rounded-md border border-neutral-700" onClick={() => setOpen(false)}>
-                  Cancel
-                </button>
-                <button
-                  onClick={save}
-                  className="px-4 py-2 rounded-md font-semibold"
-                  style={{ background: "#39FF14", color: "#141414" }}
+        <Modal title={editing ? "Edit Client" : "Add Client"} onClose={() => setOpen(false)}>
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+            {error && <ErrorText text={error} />}
+            <div className="grid md:grid-cols-2 gap-4">
+              <L label="Company Legal Name">
+                <I
+                  value={form.legalName || ""}
+                  onChange={(e) => change("legalName", e.target.value)}
+                />
+              </L>
+              <L label="Trading Name">
+                <I
+                  value={form.tradingName || ""}
+                  onChange={(e) => change("tradingName", e.target.value)}
+                />
+              </L>
+              <L label="Industry">
+                <select
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.industry || ""}
+                  onChange={(e) => change("industry", e.target.value)}
                 >
-                  Save Client
+                  <option value="">—</option>
+                  <option>TV</option>
+                  <option>Film</option>
+                  <option>Events</option>
+                  <option>Corporate</option>
+                </select>
+              </L>
+              <L label="Tax / VAT ID">
+                <I value={form.taxId || ""} onChange={(e) => change("taxId", e.target.value)} />
+              </L>
+            </div>
+
+            <div className="border-t border-neutral-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold">Key Contacts</div>
+                <button className="text-sm text-[#39FF14]" onClick={addContact}>
+                  + Add Contact
                 </button>
               </div>
+              {(form.contacts || []).map((ct, idx) => (
+                <div key={idx} className="grid md:grid-cols-4 gap-3 mb-3">
+                  <I
+                    placeholder="Name"
+                    value={ct.name || ""}
+                    onChange={(e) => {
+                      const list = [...(form.contacts || [])];
+                      list[idx] = { ...list[idx], name: e.target.value };
+                      change("contacts", list);
+                    }}
+                  />
+                  <I
+                    placeholder="Title"
+                    value={ct.title || ""}
+                    onChange={(e) => {
+                      const list = [...(form.contacts || [])];
+                      list[idx] = { ...list[idx], title: e.target.value };
+                      change("contacts", list);
+                    }}
+                  />
+                  <I
+                    placeholder="Email"
+                    type="email"
+                    value={ct.email || ""}
+                    onChange={(e) => {
+                      const list = [...(form.contacts || [])];
+                      list[idx] = { ...list[idx], email: e.target.value };
+                      change("contacts", list);
+                    }}
+                  />
+                  <I
+                    placeholder="Phone"
+                    value={ct.phone || ""}
+                    onChange={(e) => {
+                      const list = [...(form.contacts || [])];
+                      list[idx] = { ...list[idx], phone: e.target.value };
+                      change("contacts", list);
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <Button ghost onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button primary onClick={save}>
+              Save Client
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
 
-/** ---------- Inventory (items + quantity movements) ---------- */
+/** =========================================================
+ *  Inventory
+ *  =======================================================*/
 
 type Item = {
   id?: string;
@@ -384,6 +454,11 @@ type Item = {
   tags?: string[];
   quantity: number;
   archived?: boolean;
+  // audit
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
 };
 
 function Inventory({ user }: { user: User }) {
@@ -392,7 +467,7 @@ function Inventory({ user }: { user: User }) {
   const [editing, setEditing] = React.useState<Item | null>(null);
   const [form, setForm] = React.useState<Item>({ sku: "", name: "", quantity: 0, tags: [] });
   const [delta, setDelta] = React.useState<Record<string, number>>({});
-  const [error, setError] = React.useState<string>("");
+  const [error, setError] = React.useState("");
 
   React.useEffect(() => {
     if (!user) return;
@@ -410,38 +485,49 @@ function Inventory({ user }: { user: User }) {
     setError("");
     setOpen(true);
   }
-
   function startEdit(it: Item) {
     setEditing(it);
     setForm({ ...it, tags: it.tags ?? [] });
     setError("");
     setOpen(true);
   }
-
   function change<K extends keyof Item>(k: K, v: Item[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
   async function save() {
     setError("");
-    const payload: Item = {
+    const payload: Omit<Item, "id"> = {
       sku: (form.sku || "").trim(),
       name: (form.name || "").trim(),
       tags: form.tags ?? [],
       quantity: Number.isFinite(form.quantity) ? Number(form.quantity) : 0,
       archived: !!form.archived,
     };
-    if (!payload.name) { setError("Name is required."); return; }
+    if (!payload.name) {
+      setError("Name is required.");
+      return;
+    }
+
+    const meta = {
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || null,
+    };
 
     try {
       if (editing?.id) {
-        await updateDoc(doc(db, "inventoryItems", editing.id), payload as any);
+        await updateDoc(doc(db, "inventoryItems", editing.id), { ...payload, ...meta } as any);
       } else {
-        await addDoc(collection(db, "inventoryItems"), payload as any);
+        await addDoc(collection(db, "inventoryItems"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || null,
+          ...meta,
+        } as any);
       }
       setOpen(false);
     } catch (e: any) {
-      setError(e?.message || "Failed to save item (check Firestore rules & auth).");
+      setError(e?.message || "Failed to save item (check rules & auth).");
     }
   }
 
@@ -464,6 +550,7 @@ function Inventory({ user }: { user: User }) {
         delta: amt,
         reason,
         createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.email || null,
       });
 
       setDelta((d) => ({ ...d, [itemId]: 0 }));
@@ -522,79 +609,70 @@ function Inventory({ user }: { user: User }) {
           </div>
         ))}
         {items.length === 0 && (
-          <div className="text-neutral-400 text-sm border border-dashed border-neutral-800 rounded-lg p-8">
-            No items yet. Click <span className="font-semibold">+ Add Item</span> to create your first item.
-          </div>
+          <EmptyCard text="+ Add Item to create your first item." />
         )}
       </div>
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setOpen(false)} />
-          <div className="absolute inset-0 flex items-center justify-center p-3">
-            <div className="w-full max-w-2xl rounded-xl border border-neutral-800 bg-neutral-950">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-                <div className="text-lg font-bold">{editing ? "Edit Item" : "Add Item"}</div>
-                <button className="text-neutral-400 hover:text-white" onClick={() => setOpen(false)}>✕</button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <L label="Name">
-                    <I value={form.name || ""} onChange={(e) => change("name", e.target.value)} />
-                  </L>
-                  <L label="SKU">
-                    <I value={form.sku || ""} onChange={(e) => change("sku", e.target.value)} />
-                  </L>
-                  <L label="Quantity">
-                    <I
-                      type="number"
-                      value={String(form.quantity ?? 0)}
-                      onChange={(e) => change("quantity", Number(e.target.value))}
-                    />
-                  </L>
-                  <L label="Tags (comma separated)">
-                    <I
-                      value={(form.tags || []).join(", ")}
-                      onChange={(e) =>
-                        change(
-                          "tags",
-                          e.target.value.split(",").map((t) => t.trim()).filter(Boolean)
-                        )
-                      }
-                    />
-                  </L>
-                </div>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={!!form.archived}
-                    onChange={(e) => change("archived", e.target.checked)}
-                  />
-                  Archived
-                </label>
-              </div>
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-neutral-800">
-                <button className="px-4 py-2 rounded-md border border-neutral-700" onClick={() => setOpen(false)}>
-                  Cancel
-                </button>
-                <button
-                  onClick={save}
-                  className="px-4 py-2 rounded-md font-semibold"
-                  style={{ background: "#39FF14", color: "#141414" }}
-                >
-                  Save Item
-                </button>
-              </div>
+        <Modal title={editing ? "Edit Item" : "Add Item"} onClose={() => setOpen(false)}>
+          <div className="space-y-4">
+            {error && <ErrorText text={error} />}
+            <div className="grid md:grid-cols-2 gap-4">
+              <L label="Name">
+                <I value={form.name || ""} onChange={(e) => change("name", e.target.value)} />
+              </L>
+              <L label="SKU">
+                <I value={form.sku || ""} onChange={(e) => change("sku", e.target.value)} />
+              </L>
+              <L label="Quantity">
+                <I
+                  type="number"
+                  value={String(form.quantity ?? 0)}
+                  onChange={(e) => change("quantity", Number(e.target.value))}
+                />
+              </L>
+              <L label="Tags (comma separated)">
+                <I
+                  value={(form.tags || []).join(", ")}
+                  onChange={(e) =>
+                    change(
+                      "tags",
+                      e.target.value
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean)
+                    )
+                  }
+                />
+              </L>
             </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!form.archived}
+                onChange={(e) => change("archived", e.target.checked)}
+              />
+              Archived
+            </label>
           </div>
-        </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <Button ghost onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button primary onClick={save}>
+              Save Item
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );
 }
 
-/** ---------- Tiny UI helpers ---------- */
+/** =========================================================
+ *  UI helpers
+ *  =======================================================*/
 
 function L({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -604,7 +682,6 @@ function L({ label, children }: { label: string; children: React.ReactNode }) {
     </label>
   );
 }
-
 function I(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
@@ -614,5 +691,59 @@ function I(props: React.InputHTMLAttributes<HTMLInputElement>) {
         (props.className ?? "")
       }
     />
+  );
+}
+function Button({
+  children,
+  primary,
+  ghost,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { primary?: boolean; ghost?: boolean }) {
+  const cls = primary
+    ? "px-4 py-2 rounded-md font-semibold"
+    : ghost
+    ? "px-4 py-2 rounded-md border border-neutral-700"
+    : "px-4 py-2 rounded-md";
+  const style = primary ? { background: "#39FF14", color: "#141414" } : undefined;
+  return (
+    <button {...rest} className={cls} style={style}>
+      {children}
+    </button>
+  );
+}
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="absolute inset-0 flex items-center justify-center p-3">
+        <div className="w-full max-w-3xl rounded-xl border border-neutral-800 bg-neutral-950">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+            <div className="text-lg font-bold">{title}</div>
+            <button className="text-neutral-400 hover:text-white" onClick={onClose}>
+              ✕
+            </button>
+          </div>
+          <div className="p-5">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function ErrorText({ text }: { text: string }) {
+  return <div className="text-red-400 text-sm">{text}</div>;
+}
+function EmptyCard({ text }: { text: string }) {
+  return (
+    <div className="text-neutral-400 text-sm border border-dashed border-neutral-800 rounded-lg p-8">
+      No records yet. {text}
+    </div>
   );
 }
