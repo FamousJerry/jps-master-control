@@ -7,6 +7,10 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import {
   onAuthStateChanged,
@@ -56,8 +60,8 @@ export default function App() {
       {view === "dashboard" && <Dashboard />}
       {view === "clients" && <ClientCentral user={user} />}
       {view === "inventory" && <Inventory user={user} />}
-      {view === "sales" && <Placeholder title="Sales" />}
-      {view === "schedule" && <Placeholder title="Scheduling" />}
+      {view === "sales" && <Sales user={user} />}
+      {view === "schedule" && <Scheduling user={user} />}
     </Shell>
   );
 }
@@ -151,9 +155,7 @@ function Shell({
               </button>
             ))}
           </nav>
-          <div className="mt-auto p-3 text-xs text-neutral-500">
-            © {new Date().getFullYear()} Jingjai
-          </div>
+          <div className="mt-auto p-3 text-xs text-neutral-500">© {new Date().getFullYear()} Jingjai</div>
         </aside>
 
         {/* Main */}
@@ -214,7 +216,6 @@ type Client = {
   industry?: string;
   taxId?: string;
   contacts?: Contact[];
-  // audit
   createdAt?: any;
   createdBy?: string | null;
   updatedAt?: any;
@@ -275,10 +276,7 @@ function ClientCentral({ user }: { user: User }) {
         contacts: (form.contacts || []).map((c) => ({ ...c, name: c.name?.trim() || "" })),
       };
 
-      const meta = {
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.email || null,
-      };
+      const meta = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null };
 
       if (editing?.id) {
         await updateDoc(doc(db, "clients", editing.id), { ...payload, ...meta } as any);
@@ -329,18 +327,14 @@ function ClientCentral({ user }: { user: User }) {
           >
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-lg font-semibold">
-                  {c.tradingName || c.legalName || "Unnamed"}
-                </div>
+                <div className="text-lg font-semibold">{c.tradingName || c.legalName || "Unnamed"}</div>
                 <div className="text-xs text-neutral-400">{c.industry}</div>
               </div>
               <div className="text-xs text-neutral-500">{c.clientId ?? "N/A"}</div>
             </div>
           </div>
         ))}
-        {clients.length === 0 && (
-          <EmptyCard text="+ Add Client to create your first record." />
-        )}
+        {clients.length === 0 && <EmptyCard text="+ Add Client to create your first record." />}
       </div>
 
       {/* Modal */}
@@ -350,16 +344,10 @@ function ClientCentral({ user }: { user: User }) {
             {error && <ErrorText text={error} />}
             <div className="grid md:grid-cols-2 gap-4">
               <L label="Company Legal Name">
-                <I
-                  value={form.legalName || ""}
-                  onChange={(e) => change("legalName", e.target.value)}
-                />
+                <I value={form.legalName || ""} onChange={(e) => change("legalName", e.target.value)} />
               </L>
               <L label="Trading Name">
-                <I
-                  value={form.tradingName || ""}
-                  onChange={(e) => change("tradingName", e.target.value)}
-                />
+                <I value={form.tradingName || ""} onChange={(e) => change("tradingName", e.target.value)} />
               </L>
               <L label="Industry">
                 <select
@@ -454,7 +442,6 @@ type Item = {
   tags?: string[];
   quantity: number;
   archived?: boolean;
-  // audit
   createdAt?: any;
   createdBy?: string | null;
   updatedAt?: any;
@@ -509,10 +496,7 @@ function Inventory({ user }: { user: User }) {
       return;
     }
 
-    const meta = {
-      updatedAt: serverTimestamp(),
-      updatedBy: auth.currentUser?.email || null,
-    };
+    const meta = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null };
 
     try {
       if (editing?.id) {
@@ -542,7 +526,7 @@ function Inventory({ user }: { user: User }) {
         if (!snap.exists()) return;
         const cur = Number((snap.data() as any).quantity || 0);
         const next = cur + amt;
-        tx.update(itemRef, { quantity: next });
+        tx.update(itemRef, { quantity: next, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null });
       });
 
       await addDoc(collection(db, "inventoryEvents"), {
@@ -608,12 +592,9 @@ function Inventory({ user }: { user: User }) {
             </div>
           </div>
         ))}
-        {items.length === 0 && (
-          <EmptyCard text="+ Add Item to create your first item." />
-        )}
+        {items.length === 0 && <EmptyCard text="+ Add Item to create your first item." />}
       </div>
 
-      {/* Modal */}
       {open && (
         <Modal title={editing ? "Edit Item" : "Add Item"} onClose={() => setOpen(false)}>
           <div className="space-y-4">
@@ -667,6 +648,598 @@ function Inventory({ user }: { user: User }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+/** =========================================================
+ *  Sales (Deals)
+ *  =======================================================*/
+
+type Deal = {
+  id?: string;
+  title: string;
+  clientId?: string;
+  stage: "Lead" | "Quote" | "Awarded" | "Lost";
+  amount: number;
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
+};
+
+function Sales({ user }: { user: User }) {
+  const [deals, setDeals] = React.useState<Deal[]>([]);
+  const [clients, setClients] = React.useState<Client[]>([]);
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Deal | null>(null);
+  const [form, setForm] = React.useState<Deal>({ title: "", clientId: "", stage: "Lead", amount: 0 });
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (!user) return;
+    const unsubDeals = onSnapshot(collection(db, "deals"), (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Deal[];
+      data.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+      setDeals(data);
+    });
+    const unsubClients = onSnapshot(collection(db, "clients"), (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Client[];
+      data.sort((a, b) => (a.tradingName || a.legalName || "").localeCompare(b.tradingName || b.legalName || ""));
+      setClients(data);
+    });
+    return () => {
+      unsubDeals();
+      unsubClients();
+    };
+  }, [user]);
+
+  function startAdd() {
+    setEditing(null);
+    setForm({ title: "", clientId: "", stage: "Lead", amount: 0 });
+    setError("");
+    setOpen(true);
+  }
+  function startEdit(d: Deal) {
+    setEditing(d);
+    setForm({ ...d });
+    setError("");
+    setOpen(true);
+  }
+  function change<K extends keyof Deal>(k: K, v: Deal[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function save() {
+    setError("");
+    const payload: Omit<Deal, "id"> = {
+      title: (form.title || "").trim(),
+      clientId: form.clientId || "",
+      stage: form.stage || "Lead",
+      amount: Number.isFinite(form.amount) ? Number(form.amount) : 0,
+    };
+    if (!payload.title) {
+      setError("Title is required.");
+      return;
+    }
+
+    const meta = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null };
+
+    try {
+      if (editing?.id) {
+        await updateDoc(doc(db, "deals", editing.id), { ...payload, ...meta } as any);
+      } else {
+        await addDoc(collection(db, "deals"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || null,
+          ...meta,
+        } as any);
+      }
+      setOpen(false);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save deal (check rules & auth).");
+    }
+  }
+
+  const stages: Deal["stage"][] = ["Lead", "Quote", "Awarded", "Lost"];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Sales</h2>
+        <button
+          onClick={startAdd}
+          className="px-4 py-2 rounded-lg font-semibold"
+          style={{ background: "#39FF14", color: "#141414" }}
+        >
+          + Add Deal
+        </button>
+      </div>
+
+      <div className="mt-6 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stages.map((stage) => (
+          <div key={stage} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
+            <div className="font-semibold mb-2">{stage}</div>
+            <div className="space-y-2">
+              {deals
+                .filter((d) => d.stage === stage)
+                .map((d) => (
+                  <div
+                    key={d.id}
+                    className="rounded-md border border-neutral-800 p-3 hover:bg-neutral-900 cursor-pointer"
+                    onClick={() => startEdit(d)}
+                  >
+                    <div className="text-sm font-semibold">{d.title}</div>
+                    <div className="text-xs text-neutral-400">
+                      {clients.find((c) => c.id === d.clientId)?.tradingName ||
+                        clients.find((c) => c.id === d.clientId)?.legalName ||
+                        "—"}
+                    </div>
+                    <div className="text-xs mt-1">
+                      ฿{Number(d.amount || 0).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              {deals.filter((d) => d.stage === stage).length === 0 && (
+                <div className="text-xs text-neutral-500">No deals</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {open && (
+        <Modal title={editing ? "Edit Deal" : "Add Deal"} onClose={() => setOpen(false)}>
+          <div className="space-y-4">
+            {error && <ErrorText text={error} />}
+            <div className="grid md:grid-cols-2 gap-4">
+              <L label="Title">
+                <I value={form.title || ""} onChange={(e) => change("title", e.target.value)} />
+              </L>
+              <L label="Client">
+                <select
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.clientId || ""}
+                  onChange={(e) => change("clientId", e.target.value)}
+                >
+                  <option value="">—</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.tradingName || c.legalName}
+                    </option>
+                  ))}
+                </select>
+              </L>
+              <L label="Stage">
+                <select
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.stage}
+                  onChange={(e) => change("stage", e.target.value as Deal["stage"])}
+                >
+                  {stages.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </L>
+              <L label="Amount (THB)">
+                <I
+                  type="number"
+                  value={String(form.amount ?? 0)}
+                  onChange={(e) => change("amount", Number(e.target.value))}
+                />
+              </L>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <Button ghost onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button primary onClick={save}>
+              Save Deal
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/** =========================================================
+ *  Scheduling (Resources + Bookings)
+ *  =======================================================*/
+
+type Resource = {
+  id?: string;
+  name: string;
+  type?: string; // "Person" | "Equipment" | etc.
+  archived?: boolean;
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
+};
+type Booking = {
+  id?: string;
+  title: string;
+  resourceId: string;
+  start: string; // ISO-like from <input type="datetime-local">
+  end: string;
+  notes?: string;
+  createdAt?: any;
+  createdBy?: string | null;
+  updatedAt?: any;
+  updatedBy?: string | null;
+};
+
+function Scheduling({ user }: { user: User }) {
+  const [tab, setTab] = React.useState<"resources" | "bookings">("resources");
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Scheduling</h2>
+      </div>
+
+      <div className="mt-4 border-b border-neutral-800 flex gap-2">
+        <TabButton active={tab === "resources"} onClick={() => setTab("resources")}>
+          Resources
+        </TabButton>
+        <TabButton active={tab === "bookings"} onClick={() => setTab("bookings")}>
+          Bookings
+        </TabButton>
+      </div>
+
+      <div className="mt-4">
+        {tab === "resources" ? <Resources user={user} /> : <Bookings user={user} />}
+      </div>
+    </div>
+  );
+}
+
+function Resources({ user }: { user: User }) {
+  const [resources, setResources] = React.useState<Resource[]>([]);
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Resource | null>(null);
+  const [form, setForm] = React.useState<Resource>({ name: "", type: "", archived: false });
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, "resources"), (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Resource[];
+      data.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setResources(data);
+    });
+    return unsub;
+  }, [user]);
+
+  function startAdd() {
+    setEditing(null);
+    setForm({ name: "", type: "", archived: false });
+    setError("");
+    setOpen(true);
+  }
+  function startEdit(r: Resource) {
+    setEditing(r);
+    setForm({ ...r });
+    setError("");
+    setOpen(true);
+  }
+  function change<K extends keyof Resource>(k: K, v: Resource[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function save() {
+    setError("");
+    if (!form.name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    const payload: Omit<Resource, "id"> = {
+      name: form.name.trim(),
+      type: form.type || "",
+      archived: !!form.archived,
+    };
+    const meta = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null };
+
+    try {
+      if (editing?.id) {
+        await updateDoc(doc(db, "resources", editing.id), { ...payload, ...meta } as any);
+      } else {
+        await addDoc(collection(db, "resources"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || null,
+          ...meta,
+        } as any);
+      }
+      setOpen(false);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save resource (check rules & auth).");
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold">Resources</div>
+        <button
+          onClick={startAdd}
+          className="px-4 py-2 rounded-lg font-semibold"
+          style={{ background: "#39FF14", color: "#141414" }}
+        >
+          + Add Resource
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {resources.map((r) => (
+          <div
+            key={r.id}
+            className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 cursor-pointer hover:bg-neutral-900"
+            onClick={() => startEdit(r)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-semibold">{r.name}</div>
+                <div className="text-xs text-neutral-400">{r.type || "—"}</div>
+              </div>
+              {r.archived && <span className="text-xs text-neutral-500">Archived</span>}
+            </div>
+          </div>
+        ))}
+        {resources.length === 0 && <EmptyCard text="+ Add Resource to begin scheduling." />}
+      </div>
+
+      {open && (
+        <Modal title={editing ? "Edit Resource" : "Add Resource"} onClose={() => setOpen(false)}>
+          <div className="space-y-4">
+            {error && <ErrorText text={error} />}
+            <div className="grid md:grid-cols-2 gap-4">
+              <L label="Name">
+                <I value={form.name || ""} onChange={(e) => change("name", e.target.value)} />
+              </L>
+              <L label="Type">
+                <I value={form.type || ""} onChange={(e) => change("type", e.target.value)} />
+              </L>
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!form.archived}
+                onChange={(e) => change("archived", e.target.checked)}
+              />
+              Archived
+            </label>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <Button ghost onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button primary onClick={save}>
+              Save Resource
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function Bookings({ user }: { user: User }) {
+  const [resources, setResources] = React.useState<Resource[]>([]);
+  const [bookings, setBookings] = React.useState<Booking[]>([]);
+  const [open, setOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Booking | null>(null);
+  const [form, setForm] = React.useState<Booking>({
+    title: "",
+    resourceId: "",
+    start: "",
+    end: "",
+    notes: "",
+  });
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    if (!user) return;
+    const unsubR = onSnapshot(collection(db, "resources"), (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Resource[];
+      data.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setResources(data);
+    });
+    const unsubB = onSnapshot(
+      query(collection(db, "bookings"), orderBy("start", "desc"), limit(100)),
+      (snap) => {
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Booking[];
+        setBookings(data);
+      }
+    );
+    return () => {
+      unsubR();
+      unsubB();
+    };
+  }, [user]);
+
+  function startAdd() {
+    setEditing(null);
+    setForm({ title: "", resourceId: "", start: "", end: "", notes: "" });
+    setError("");
+    setOpen(true);
+  }
+  function startEdit(b: Booking) {
+    setEditing(b);
+    setForm({ ...b });
+    setError("");
+    setOpen(true);
+  }
+  function change<K extends keyof Booking>(k: K, v: Booking[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+    if (!aStart || !aEnd || !bStart || !bEnd) return false;
+    return aStart < bEnd && aEnd > bStart; // basic overlap
+  }
+
+  async function save() {
+    setError("");
+    const payload: Omit<Booking, "id"> = {
+      title: (form.title || "").trim(),
+      resourceId: form.resourceId || "",
+      start: form.start || "",
+      end: form.end || "",
+      notes: form.notes || "",
+    };
+    if (!payload.title || !payload.resourceId || !payload.start || !payload.end) {
+      setError("Title, Resource, Start, and End are required.");
+      return;
+    }
+    if (payload.end <= payload.start) {
+      setError("End must be after Start.");
+      return;
+    }
+
+    // Client-side conflict check for same resource
+    const existing = bookings.filter((b) => b.resourceId === payload.resourceId && b.id !== editing?.id);
+    const hasConflict = existing.some((b) => overlaps(payload.start, payload.end, b.start, b.end));
+    if (hasConflict) {
+      setError("Time conflict with another booking for this resource.");
+      return;
+    }
+
+    const meta = { updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.email || null };
+
+    try {
+      if (editing?.id) {
+        await updateDoc(doc(db, "bookings", editing.id), { ...payload, ...meta } as any);
+      } else {
+        await addDoc(collection(db, "bookings"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+          createdBy: auth.currentUser?.email || null,
+          ...meta,
+        } as any);
+      }
+      setOpen(false);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save booking (check rules & auth).");
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold">Bookings</div>
+        <button
+          onClick={startAdd}
+          className="px-4 py-2 rounded-lg font-semibold"
+          style={{ background: "#39FF14", color: "#141414" }}
+        >
+          + Add Booking
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {bookings.map((b) => {
+          const r = resources.find((x) => x.id === b.resourceId);
+          return (
+            <div
+              key={b.id}
+              className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4 hover:bg-neutral-900 cursor-pointer"
+              onClick={() => startEdit(b)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">{b.title}</div>
+                  <div className="text-xs text-neutral-400">
+                    {r?.name || "—"} • {b.start} → {b.end}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {bookings.length === 0 && <EmptyCard text="+ Add Booking to schedule a resource." />}
+      </div>
+
+      {open && (
+        <Modal title={editing ? "Edit Booking" : "Add Booking"} onClose={() => setOpen(false)}>
+          <div className="space-y-4">
+            {error && <ErrorText text={error} />}
+            <div className="grid md:grid-cols-2 gap-4">
+              <L label="Title">
+                <I value={form.title || ""} onChange={(e) => change("title", e.target.value)} />
+              </L>
+              <L label="Resource">
+                <select
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.resourceId || ""}
+                  onChange={(e) => change("resourceId", e.target.value)}
+                >
+                  <option value="">—</option>
+                  {resources.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} {r.type ? `(${r.type})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </L>
+              <L label="Start">
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.start || ""}
+                  onChange={(e) => change("start", e.target.value)}
+                />
+              </L>
+              <L label="End">
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2 outline-none"
+                  value={form.end || ""}
+                  onChange={(e) => change("end", e.target.value)}
+                />
+              </L>
+            </div>
+            <L label="Notes">
+              <I value={form.notes || ""} onChange={(e) => change("notes", e.target.value)} />
+            </L>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-800">
+            <Button ghost onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button primary onClick={save}>
+              Save Booking
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "px-4 py-2 rounded-t-md text-sm " +
+        (active ? "bg-[#39FF14] text-black font-semibold" : "bg-neutral-800 hover:bg-neutral-700")
+      }
+    >
+      {children}
+    </button>
   );
 }
 
