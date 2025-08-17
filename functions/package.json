@@ -1,19 +1,22 @@
 {
-  "name": "jps-functions",
+  "name": "functions",
   "private": true,
-  "engines": { "node": "20" },
   "main": "lib/index.js",
+  "engines": { "node": "20" },
   "scripts": {
+    "clean": "rimraf lib",
     "build": "tsc -p tsconfig.json",
-    "deploy": "npm run build && firebase deploy --only functions"
+    "dev": "tsc -w",
+    "lint": "eslint --ext .ts src || true"
   },
   "dependencies": {
     "firebase-admin": "^12.5.0",
-    "firebase-functions": "^5.0.1",
-    "zod": "^3.23.8"
+    "firebase-functions": "^5.0.1"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "@types/node": "^20.12.12"
+    "@types/node": "^20.5.0",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.0"
   }
 }
