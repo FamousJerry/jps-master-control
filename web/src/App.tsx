@@ -2,36 +2,96 @@ import React from "react";
 import {
   collection, onSnapshot, addDoc, updateDoc, doc, runTransaction, serverTimestamp
 } from "firebase/firestore";
-import { db } from "./lib/firebase";
+import {
+  onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut,
+  setPersistence, browserLocalPersistence, User
+} from "firebase/auth";
+import { db, auth } from "./lib/firebase";
 
-/** ---------- App Shell with simple view switcher (no extra deps) ---------- */
+/** ---------- App Shell with Auth gating ---------- */
 
 type View = "dashboard" | "clients" | "inventory" | "sales" | "schedule";
 
 export default function App() {
   const [view, setView] = React.useState<View>("dashboard");
+  const [user, setUser] = React.useState<User | null>(null);
+  const [authReady, setAuthReady] = React.useState(false);
+
+  React.useEffect(() => {
+    // Persist sessions locally and establish listener
+    setPersistence(auth, browserLocalPersistence)
+      .catch(() => {/* ignore if already set */})
+      .finally(() => {
+        const unsub = onAuthStateChanged(auth, (u) => {
+          setUser(u);
+          setAuthReady(true);
+        });
+        return () => unsub();
+      });
+  }, []);
+
+  if (!authReady) {
+    return <div className="min-h-screen flex items-center justify-center text-neutral-300">Loading…</div>;
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
 
   return (
-    <Shell current={view} onNavigate={setView}>
+    <Shell current={view} onNavigate={setView} user={user} onLogout={() => fbSignOut(auth)}>
       {view === "dashboard" && <Dashboard />}
-      {view === "clients" && <ClientCentral />}
-      {view === "inventory" && <Inventory />}
+      {view === "clients" && <ClientCentral user={user} />}
+      {view === "inventory" && <Inventory user={user} />}
       {view === "sales" && <Placeholder title="Sales" />}
       {view === "schedule" && <Placeholder title="Scheduling" />}
     </Shell>
   );
 }
 
+/** ---------- Login ---------- */
+
+function LoginScreen() {
+  const [err, setErr] = React.useState<string>("");
+
+  async function signIn() {
+    try {
+      setErr("");
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (e: any) {
+      setErr(e?.message || "Sign-in failed");
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+        <div className="text-2xl font-extrabold mb-1" style={{ color: "#39FF14" }}>Jingjai</div>
+        <div className="text-sm text-neutral-400 mb-6">Master Control</div>
+        {err && <div className="mb-3 text-sm text-red-400">{err}</div>}
+        <button
+          onClick={signIn}
+          className="w-full px-4 py-3 rounded-lg font-semibold"
+          style={{ background: "#39FF14", color: "#141414" }}
+        >
+          Sign in with Google
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** ---------- Layout ---------- */
 
 function Shell({
-  current,
-  onNavigate,
-  children,
+  current, onNavigate, children, user, onLogout
 }: {
   current: View;
   onNavigate: (v: View) => void;
   children: React.ReactNode;
+  user: User;
+  onLogout: () => void;
 }) {
   const nav: { key: View; label: string }[] = [
     { key: "dashboard", label: "Dashboard" },
@@ -47,9 +107,7 @@ function Shell({
         {/* Sidebar */}
         <aside className="hidden md:flex md:w-64 flex-col border-r border-neutral-800/80 bg-neutral-950/60">
           <div className="px-5 py-4 border-b border-neutral-800">
-            <div className="text-2xl font-extrabold" style={{ color: "#39FF14" }}>
-              Jingjai
-            </div>
+            <div className="text-2xl font-extrabold" style={{ color: "#39FF14" }}>Jingjai</div>
             <div className="text-xs text-neutral-400">Master Control</div>
           </div>
           <nav className="p-3 space-y-1">
@@ -72,12 +130,19 @@ function Shell({
         {/* Main */}
         <main className="flex-1">
           {/* Top bar */}
-          <header className="sticky top-0 z-40 backdrop-blur bg-neutral-950/50 border-b border-neutral-800 md:hidden">
+          <header className="sticky top-0 z-40 backdrop-blur bg-neutral-950/50 border-b border-neutral-800">
             <div className="flex items-center justify-between px-4 py-3">
-              <div className="text-lg font-bold" style={{ color: "#39FF14" }}>
-                Jingjai
+              <div className="md:hidden text-lg font-bold" style={{ color: "#39FF14" }}>Jingjai</div>
+              <div className="flex items-center gap-3 text-sm text-neutral-300">
+                <span className="hidden sm:block">{user.email}</span>
+                <button
+                  onClick={onLogout}
+                  className="px-3 py-1.5 rounded-md border border-neutral-700 hover:bg-neutral-800"
+                  title="Sign out"
+                >
+                  Logout
+                </button>
               </div>
-              <div className="text-sm text-neutral-400">Signed in with Google</div>
             </div>
           </header>
 
@@ -117,7 +182,7 @@ type Client = {
   contacts?: Contact[];
 };
 
-function ClientCentral() {
+function ClientCentral({ user }: { user: User }) {
   const [clients, setClients] = React.useState<Client[]>([]);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Client | null>(null);
@@ -125,12 +190,14 @@ function ClientCentral() {
   const [error, setError] = React.useState<string>("");
 
   React.useEffect(() => {
+    // Guard until signed-in user exists
+    if (!user) return;
     const unsub = onSnapshot(collection(db, "clients"), (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Client[];
       setClients(data.sort((a, b) => (b.clientId ?? "").localeCompare(a.clientId ?? "")));
     });
     return unsub;
-  }, []);
+  }, [user]);
 
   function startAdd() {
     setEditing(null);
@@ -152,12 +219,10 @@ function ClientCentral() {
 
   async function save() {
     setError("");
-    // Minimal validation for v1
     if (!form.tradingName?.trim() && !form.legalName?.trim()) {
       setError("Enter at least a Trading Name or Legal Name.");
       return;
     }
-
     const payload: Client = {
       legalName: form.legalName?.trim() || "",
       tradingName: form.tradingName?.trim() || "",
@@ -166,20 +231,24 @@ function ClientCentral() {
       contacts: (form.contacts || []).map((c) => ({ ...c, name: c.name?.trim() || "" })),
     };
 
-    if (editing?.id) {
-      await updateDoc(doc(db, "clients", editing.id), payload as any);
-    } else {
-      const counterRef = doc(db, "counters", "client");
-      const newId = await runTransaction(db, async (tx) => {
-        const snap = await tx.get(counterRef);
-        const current = snap.exists() ? (snap.data() as any).current_value ?? 100000 : 100000;
-        const next = current + 1;
-        tx.set(counterRef, { current_value: next }, { merge: true });
-        return next;
-      });
-      await addDoc(collection(db, "clients"), { ...payload, clientId: `CL-${newId}` });
+    try {
+      if (editing?.id) {
+        await updateDoc(doc(db, "clients", editing.id), payload as any);
+      } else {
+        const counterRef = doc(db, "counters", "client");
+        const newId = await runTransaction(db, async (tx) => {
+          const snap = await tx.get(counterRef);
+          const current = snap.exists() ? (snap.data() as any).current_value ?? 100000 : 100000;
+          const next = current + 1;
+          tx.set(counterRef, { current_value: next }, { merge: true });
+          return next;
+        });
+        await addDoc(collection(db, "clients"), { ...payload, clientId: `CL-${newId}` });
+      }
+      setOpen(false);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save client (check Firestore rules & auth).");
     }
-    setOpen(false);
   }
 
   function addContact() {
@@ -230,9 +299,7 @@ function ClientCentral() {
             <div className="w-full max-w-3xl rounded-xl border border-neutral-800 bg-neutral-950">
               <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
                 <div className="text-lg font-bold">{editing ? "Edit Client" : "Add Client"}</div>
-                <button className="text-neutral-400 hover:text-white" onClick={() => setOpen(false)}>
-                  ✕
-                </button>
+                <button className="text-neutral-400 hover:text-white" onClick={() => setOpen(false)}>✕</button>
               </div>
               <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
@@ -264,49 +331,26 @@ function ClientCentral() {
                 <div className="border-t border-neutral-800 pt-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-semibold">Key Contacts</div>
-                    <button className="text-sm text-[#39FF14]" onClick={addContact}>
-                      + Add Contact
-                    </button>
+                    <button className="text-sm text-[#39FF14]" onClick={addContact}>+ Add Contact</button>
                   </div>
                   {(form.contacts || []).map((ct, idx) => (
                     <div key={idx} className="grid md:grid-cols-4 gap-3 mb-3">
-                      <I
-                        placeholder="Name"
-                        value={ct.name || ""}
-                        onChange={(e) => {
-                          const list = [...(form.contacts || [])];
-                          list[idx] = { ...list[idx], name: e.target.value };
-                          change("contacts", list);
-                        }}
-                      />
-                      <I
-                        placeholder="Title"
-                        value={ct.title || ""}
-                        onChange={(e) => {
-                          const list = [...(form.contacts || [])];
-                          list[idx] = { ...list[idx], title: e.target.value };
-                          change("contacts", list);
-                        }}
-                      />
-                      <I
-                        placeholder="Email"
-                        type="email"
-                        value={ct.email || ""}
-                        onChange={(e) => {
-                          const list = [...(form.contacts || [])];
-                          list[idx] = { ...list[idx], email: e.target.value };
-                          change("contacts", list);
-                        }}
-                      />
-                      <I
-                        placeholder="Phone"
-                        value={ct.phone || ""}
-                        onChange={(e) => {
-                          const list = [...(form.contacts || [])];
-                          list[idx] = { ...list[idx], phone: e.target.value };
-                          change("contacts", list);
-                        }}
-                      />
+                      <I placeholder="Name" value={ct.name || ""} onChange={(e) => {
+                        const list = [...(form.contacts || [])];
+                        list[idx] = { ...list[idx], name: e.target.value }; change("contacts", list);
+                      }} />
+                      <I placeholder="Title" value={ct.title || ""} onChange={(e) => {
+                        const list = [...(form.contacts || [])];
+                        list[idx] = { ...list[idx], title: e.target.value }; change("contacts", list);
+                      }} />
+                      <I placeholder="Email" type="email" value={ct.email || ""} onChange={(e) => {
+                        const list = [...(form.contacts || [])];
+                        list[idx] = { ...list[idx], email: e.target.value }; change("contacts", list);
+                      }} />
+                      <I placeholder="Phone" value={ct.phone || ""} onChange={(e) => {
+                        const list = [...(form.contacts || [])];
+                        list[idx] = { ...list[idx], phone: e.target.value }; change("contacts", list);
+                      }} />
                     </div>
                   ))}
                 </div>
@@ -342,31 +386,35 @@ type Item = {
   archived?: boolean;
 };
 
-function Inventory() {
+function Inventory({ user }: { user: User }) {
   const [items, setItems] = React.useState<Item[]>([]);
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Item | null>(null);
   const [form, setForm] = React.useState<Item>({ sku: "", name: "", quantity: 0, tags: [] });
-  const [delta, setDelta] = React.useState<Record<string, number>>({}); // per-item adjust amount
+  const [delta, setDelta] = React.useState<Record<string, number>>({});
+  const [error, setError] = React.useState<string>("");
 
   React.useEffect(() => {
+    if (!user) return;
     const unsub = onSnapshot(collection(db, "inventoryItems"), (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Item[];
       data.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       setItems(data);
     });
     return unsub;
-  }, []);
+  }, [user]);
 
   function startAdd() {
     setEditing(null);
     setForm({ sku: "", name: "", quantity: 0, tags: [] });
+    setError("");
     setOpen(true);
   }
 
   function startEdit(it: Item) {
     setEditing(it);
     setForm({ ...it, tags: it.tags ?? [] });
+    setError("");
     setOpen(true);
   }
 
@@ -375,6 +423,7 @@ function Inventory() {
   }
 
   async function save() {
+    setError("");
     const payload: Item = {
       sku: (form.sku || "").trim(),
       name: (form.name || "").trim(),
@@ -382,37 +431,45 @@ function Inventory() {
       quantity: Number.isFinite(form.quantity) ? Number(form.quantity) : 0,
       archived: !!form.archived,
     };
-    if (!payload.name) return; // minimal guard
+    if (!payload.name) { setError("Name is required."); return; }
 
-    if (editing?.id) {
-      await updateDoc(doc(db, "inventoryItems", editing.id), payload as any);
-    } else {
-      await addDoc(collection(db, "inventoryItems"), payload as any);
+    try {
+      if (editing?.id) {
+        await updateDoc(doc(db, "inventoryItems", editing.id), payload as any);
+      } else {
+        await addDoc(collection(db, "inventoryItems"), payload as any);
+      }
+      setOpen(false);
+    } catch (e: any) {
+      setError(e?.message || "Failed to save item (check Firestore rules & auth).");
     }
-    setOpen(false);
   }
 
   async function applyDelta(itemId: string, reason: string) {
-    const amt = Number(delta[itemId] || 0);
-    if (!amt || !Number.isFinite(amt)) return;
-    const itemRef = doc(db, "inventoryItems", itemId);
+    try {
+      const amt = Number(delta[itemId] || 0);
+      if (!amt || !Number.isFinite(amt)) return;
+      const itemRef = doc(db, "inventoryItems", itemId);
 
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(itemRef);
-      if (!snap.exists()) return;
-      const cur = Number((snap.data() as any).quantity || 0);
-      const next = cur + amt;
-      tx.update(itemRef, { quantity: next });
-    });
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(itemRef);
+        if (!snap.exists()) return;
+        const cur = Number((snap.data() as any).quantity || 0);
+        const next = cur + amt;
+        tx.update(itemRef, { quantity: next });
+      });
 
-    await addDoc(collection(db, "inventoryEvents"), {
-      itemId,
-      delta: amt,
-      reason,
-      createdAt: serverTimestamp(),
-    });
+      await addDoc(collection(db, "inventoryEvents"), {
+        itemId,
+        delta: amt,
+        reason,
+        createdAt: serverTimestamp(),
+      });
 
-    setDelta((d) => ({ ...d, [itemId]: 0 }));
+      setDelta((d) => ({ ...d, [itemId]: 0 }));
+    } catch (e: any) {
+      alert(e?.message || "Adjustment failed (check rules & auth).");
+    }
   }
 
   return (
@@ -430,10 +487,7 @@ function Inventory() {
 
       <div className="mt-6 grid gap-3">
         {items.map((it) => (
-          <div
-            key={it.id}
-            className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4"
-          >
+          <div key={it.id} className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-[220px]">
                 <div className="font-semibold">{it.name}</div>
@@ -505,10 +559,7 @@ function Inventory() {
                       onChange={(e) =>
                         change(
                           "tags",
-                          e.target.value
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter(Boolean)
+                          e.target.value.split(",").map((t) => t.trim()).filter(Boolean)
                         )
                       }
                     />
