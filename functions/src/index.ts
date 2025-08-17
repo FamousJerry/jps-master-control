@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-admin.initializeApp();
 
+admin.initializeApp();
 const db = admin.firestore();
 
 const now = () => admin.firestore.FieldValue.serverTimestamp();
@@ -9,14 +9,19 @@ const now = () => admin.firestore.FieldValue.serverTimestamp();
 function toStr(v: any): string {
   return (v ?? "").toString().trim();
 }
-function normalizeTaxId(s?: string) {
+function normalize(s?: string) {
   return toStr(s).toUpperCase();
 }
-/** Firestore doc IDs cannot contain "/" — sanitize the index key */
-function sanitizeKey(s?: string) {
-  return normalizeTaxId(s).replace(/\//g, "_");
+/** Firestore doc IDs can’t contain “/” */
+function keyify(s?: string) {
+  return normalize(s).replace(/\//g, "_");
 }
 
+/**
+ * Create/update a client document and maintain a unique index on taxId.
+ * Expects:
+ *   data = { id?: string|null, client: { ...fields... } }
+ */
 export const upsertClient = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Sign-in required.");
@@ -27,12 +32,13 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
     const editingId = (data?.id || null) as string | null;
     const userEmail = (context.auth.token.email as string) || null;
 
-    // Coerce/clean inputs so we never write undefined
+    // Normalize/coerce inputs so we never write undefined
     const clean = {
       legalName: toStr(payload.legalName),
       tradingName: toStr(payload.tradingName),
       website: toStr(payload.website),
-      industry: toStr(payload.industry),
+
+      industry: toStr(payload.industry || "TV"),
       status: toStr(payload.status || "Prospect"),
       tier: toStr(payload.tier || "B"),
       tags: Array.isArray(payload.tags) ? payload.tags.map(toStr).filter(Boolean) : [],
@@ -41,6 +47,13 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
       vatRegistered: !!payload.vatRegistered,
       ndaOnFile: !!payload.ndaOnFile,
       vendorFormUrl: toStr(payload.vendorFormUrl),
+
+      currency: toStr(payload.currency || "THB"),
+      paymentTerms: toStr(payload.paymentTerms || "Net 30"),
+      discountRate: Number.isFinite(Number(payload.discountRate))
+        ? Number(payload.discountRate)
+        : 0,
+      poRequired: !!payload.poRequired,
 
       billingEmails: Array.isArray(payload.billingEmails)
         ? payload.billingEmails.map(toStr).filter(Boolean)
@@ -53,17 +66,6 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
         postcode: toStr(payload.billingAddress?.postcode),
         country: toStr(payload.billingAddress?.country),
       },
-      currency: toStr(payload.currency || "THB"),
-      paymentTerms: toStr(payload.paymentTerms || "Net 30"),
-      discountRate: Number.isFinite(Number(payload.discountRate))
-        ? Number(payload.discountRate)
-        : 0,
-      poRequired: !!payload.poRequired,
-
-      ownerEmail: toStr(payload.ownerEmail),
-      watchers: Array.isArray(payload.watchers)
-        ? payload.watchers.map(toStr).filter(Boolean)
-        : [],
 
       contacts: Array.isArray(payload.contacts)
         ? payload.contacts.map((c: any) => ({
@@ -76,7 +78,13 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
         : [],
     };
 
-    // Business rule: if VAT registered, taxId is required
+    // Simple validation example
+    if (!clean.legalName) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Company Legal Name is required."
+      );
+    }
     if (clean.vatRegistered && !clean.taxId) {
       throw new functions.https.HttpsError(
         "failed-precondition",
@@ -84,10 +92,10 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
       );
     }
 
-    const result = await db.runTransaction(async (tx) => {
-      const newTaxKey = sanitizeKey(clean.taxId);
-      const uniqueRef = newTaxKey ? db.collection("unique_taxIds").doc(newTaxKey) : null;
+    const newTaxKey = keyify(clean.taxId);
+    const uniqueRef = newTaxKey ? db.collection("unique_taxIds").doc(newTaxKey) : null;
 
+    const result = await db.runTransaction(async (tx) => {
       if (editingId) {
         const clientRef = db.collection("clients").doc(editingId);
         const snap = await tx.get(clientRef);
@@ -95,9 +103,9 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
           throw new functions.https.HttpsError("not-found", "Client does not exist.");
         }
         const prev = snap.data() || {};
-        const prevTaxKey = sanitizeKey(prev.taxId);
+        const prevTaxKey = keyify(prev.taxId);
 
-        // Update unique index if taxId changed
+        // Maintain unique index if taxId changed
         if (newTaxKey !== prevTaxKey) {
           if (newTaxKey && uniqueRef) {
             const uSnap = await tx.get(uniqueRef);
@@ -121,7 +129,7 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
         });
         return { id: editingId };
       } else {
-        // Allocate sequential clientId: CL-100001+
+        // Allocate sequential clientId
         const counterRef = db.collection("counters").doc("client");
         const cSnap = await tx.get(counterRef);
         const current = cSnap.exists ? (cSnap.data() as any).current_value ?? 100000 : 100000;
@@ -156,12 +164,20 @@ export const upsertClient = functions.https.onCall(async (data, context) => {
 
     return result;
   } catch (err: any) {
+    // Log full server error for diagnostics
     console.error("upsertClient failed:", err);
-    // If it's already an HttpsError, rethrow; otherwise wrap with a helpful message.
-    if (err instanceof functions.https.HttpsError) throw err;
-    throw new functions.https.HttpsError(
-      "internal",
-      err?.message || "Unexpected error while saving client."
-    );
+
+    // If it's already an HttpsError, bubble it up
+    if (err instanceof functions.https.HttpsError) {
+      throw err;
+    }
+
+    // Map a few common Firebase/Firestore errors to user-friendly HttpsErrors
+    const msg = err?.message || "Unexpected error while saving client.";
+
+    // Optionally inspect Firestore errors here and translate:
+    // if (msg.includes('PERMISSION_DENIED')) { ... }
+
+    throw new functions.https.HttpsError("internal", msg);
   }
 });
