@@ -1,28 +1,31 @@
-import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { getAuth, Auth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getFunctions, Functions } from "firebase/functions";
-
-const REGION = "us-central1"; // must match functions setGlobalOptions
+import { initializeApp } from "firebase/app";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
-  authDomain: "jps-app-468911.firebaseapp.com",
-  projectId: "jps-app-468911",
-  storageBucket: "jps-app-468911.appspot.com",
-  messagingSenderId: "532726782263",
-  appId: "1:532726782263:web:0e227d27bc61ef719962b2",
-  measurementId: "G-8HXP33E0S8"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const app: FirebaseApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export const functions: Functions = getFunctions(app, REGION);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+// Functions deployed in us-central1 per your setup
+const functions = getFunctions(app, "us-central1");
 
-// handy helpers for UI
-export const signInGoogle = async () => {
+async function signInGoogle() {
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
-};
-export const doSignOut = () => signOut(auth);
+}
+async function doSignOut() {
+  await signOut(auth);
+}
+
+export { auth, db, functions, signInGoogle, doSignOut };
