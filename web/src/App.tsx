@@ -1,21 +1,10 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
 import { auth, db, functions, signInGoogle, doSignOut } from "./lib/firebase";
-import {
-  onAuthStateChanged,
-  User
-} from "firebase/auth";
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  DocumentData
-} from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { collection, onSnapshot, orderBy, query, DocumentData } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 
-/* ---------- Common UI ---------- */
+/* ---------- Small UI helpers ---------- */
 function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -46,7 +35,6 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     />
   );
 }
-
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="bg-[#1f1f1f] rounded p-4 mb-8">
     <div className="flex items-center justify-between mb-4">
@@ -108,9 +96,7 @@ const Clients: React.FC = () => {
 
   React.useEffect(() => {
     const q = query(collection(db, "clients"), orderBy("updatedAt", "desc"));
-    return onSnapshot(q, (snap) => {
-      setList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    return onSnapshot(q, (snap) => setList(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, []);
 
   const save = async () => {
@@ -118,12 +104,13 @@ const Clients: React.FC = () => {
     setError("");
     try {
       const call = httpsCallable(functions, "upsertClient");
-      const payload = { ...editing };
-      await call({ id: editing.id || null, client: payload });
+      await call({ id: editing.id || null, client: editing });
       setEditing(null);
     } catch (e: any) {
       const msg =
-        e?.message || e?.details || e?.code ||
+        e?.message ||
+        e?.details ||
+        e?.code ||
         "Failed to save client. Check Functions logs for upsertClient.";
       setError(String(msg));
     }
@@ -202,7 +189,6 @@ const Clients: React.FC = () => {
               />
             </div>
           </div>
-
           <div className="mt-4 flex gap-2">
             <Button onClick={save}>Save Client</Button>
             <button className="px-3 py-2 rounded bg-gray-700" onClick={() => setEditing(null)}>
@@ -239,64 +225,53 @@ const Clients: React.FC = () => {
   );
 };
 
-/* ---------- Inventory (similar pattern, minimal) ---------- */
-type Item = {
-  id?: string;
-  name: string;
-  quantity?: number;
-  unitCost?: number;
-  rentalRate?: number;
-  status?: string;
-};
-const defaultItem: Item = { name: "", quantity: 0, unitCost: 0, rentalRate: 0, status: "Available" };
+/* ---------- Inventory ---------- */
+type Item = { id?:string; name:string; quantity?:number; rentalRate?:number; };
+const defaultItem: Item = { name:"", quantity:0, rentalRate:0 };
 
 const Inventory: React.FC = () => {
-  const [list, setList] = React.useState<DocumentData[]>([]);
-  const [editing, setEditing] = React.useState<Item | null>(null);
-  const [error, setError] = React.useState("");
+  const [list,setList]=React.useState<DocumentData[]>([]);
+  const [editing,setEditing]=React.useState<Item|null>(null);
+  const [error,setError]=React.useState("");
 
-  React.useEffect(() => {
-    const q = query(collection(db, "inventory"), orderBy("updatedAt", "desc"));
-    return onSnapshot(q, (snap) => setList(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-  }, []);
+  React.useEffect(()=>{
+    const q=query(collection(db,"inventory"),orderBy("updatedAt","desc"));
+    return onSnapshot(q,s=>setList(s.docs.map(d=>({id:d.id,...d.data()}))));
+  },[]);
 
-  const save = async () => {
-    if (!editing) return;
+  const save=async()=>{
+    if(!editing) return;
     setError("");
-    try {
-      const call = httpsCallable(functions, "upsertInventory");
-      await call({ id: editing.id || null, item: editing });
+    try{
+      await httpsCallable(functions,"upsertInventory")({ id: editing.id || null, item: editing });
       setEditing(null);
-    } catch (e: any) {
-      const msg = e?.message || e?.details || e?.code || "Failed to save inventory item.";
-      setError(String(msg));
+    }catch(e:any){
+      setError(e?.message||e?.details||e?.code||"Failed to save inventory item.");
     }
   };
-  const del = async (id: string) => {
-    if (!confirm("Delete this item?")) return;
-    try { await httpsCallable(functions,"deleteInventory")({ id }); }
-    catch (e:any){ alert(e?.message || "Delete failed"); }
+  const del=async(id:string)=>{
+    if(!confirm("Delete this item?"))return;
+    try{ await httpsCallable(functions,"deleteInventory")({id}); }
+    catch(e:any){ alert(e?.message||"Delete failed"); }
   };
 
   return (
     <Section title="Inventory">
-      <div className="mb-4">
-        <Button onClick={() => setEditing({ ...defaultItem })}>Add Item</Button>
-      </div>
-      {editing && (
+      <div className="mb-4"><Button onClick={()=>setEditing({...defaultItem})}>Add Item</Button></div>
+      {editing&&(
         <div className="border border-gray-700 rounded p-4 mb-6">
           {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div><label className="text-xs text-gray-400">Name</label>
-              <Input value={editing.name} onChange={e=>setEditing({...editing, name:e.target.value})} />
+              <Input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/>
             </div>
             <div><label className="text-xs text-gray-400">Quantity</label>
-              <Input type="number" value={editing.quantity ?? 0}
-                onChange={e=>setEditing({...editing, quantity:Number(e.target.value)})}/>
+              <Input type="number" value={editing.quantity??0}
+                onChange={e=>setEditing({...editing,quantity:Number(e.target.value)})}/>
             </div>
             <div><label className="text-xs text-gray-400">Rental Rate</label>
-              <Input type="number" value={editing.rentalRate ?? 0}
-                onChange={e=>setEditing({...editing, rentalRate:Number(e.target.value)})}/>
+              <Input type="number" value={editing.rentalRate??0}
+                onChange={e=>setEditing({...editing,rentalRate:Number(e.target.value)})}/>
             </div>
           </div>
           <div className="mt-3 flex gap-2">
@@ -305,19 +280,16 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="space-y-2">
-        {list.map((i) => (
+        {list.map(i=>(
           <div key={i.id} className="bg-gray-800 p-3 rounded flex items-center justify-between">
             <div>
               <div className="font-semibold">{i.name}</div>
-              <div className="text-xs text-gray-400">Qty {i.quantity ?? 0} • Rate {i.rentalRate ?? 0}</div>
+              <div className="text-xs text-gray-400">Qty {i.quantity??0} • Rate {i.rentalRate??0}</div>
             </div>
             <div className="flex gap-2">
               <button className="px-3 py-1 rounded bg-gray-700"
-                onClick={()=>setEditing({ id:i.id, name:i.name||"", quantity:i.quantity||0, rentalRate:i.rentalRate||0 })}>
-                Edit
-              </button>
+                onClick={()=>setEditing({ id:i.id, name:i.name||"", quantity:i.quantity||0, rentalRate:i.rentalRate||0 })}>Edit</button>
               <button className="px-3 py-1 rounded bg-red-700" onClick={()=>del(i.id)}>Delete</button>
             </div>
           </div>
@@ -328,54 +300,52 @@ const Inventory: React.FC = () => {
   );
 };
 
-/* ---------- Sales (minimal) ---------- */
+/* ---------- Sales ---------- */
 type Sale = { id?:string; name:string; amount?:number; stage?:string; };
 const defaultSale: Sale = { name:"", amount:0, stage:"Lead" };
 
 const Sales: React.FC = () => {
-  const [list, setList] = React.useState<DocumentData[]>([]);
-  const [editing, setEditing] = React.useState<Sale|null>(null);
-  const [error, setError] = React.useState("");
+  const [list,setList]=React.useState<DocumentData[]>([]);
+  const [editing,setEditing]=React.useState<Sale|null>(null);
+  const [error,setError]=React.useState("");
 
-  React.useEffect(()=> {
-    const q = query(collection(db,"sales"), orderBy("updatedAt","desc"));
-    return onSnapshot(q,(s)=> setList(s.docs.map(d=>({ id:d.id, ...d.data() }))));
+  React.useEffect(()=>{
+    const q=query(collection(db,"sales"),orderBy("updatedAt","desc"));
+    return onSnapshot(q,s=>setList(s.docs.map(d=>({id:d.id,...d.data()}))));
   },[]);
 
-  const save = async () => {
-    if (!editing) return;
+  const save=async()=>{
+    if(!editing) return;
     setError("");
-    try {
+    try{
       await httpsCallable(functions,"upsertSale")({ id: editing.id || null, sale: editing });
       setEditing(null);
-    } catch (e:any) {
-      setError(e?.message || e?.details || e?.code || "Failed to save sale.");
+    }catch(e:any){
+      setError(e?.message||e?.details||e?.code||"Failed to save sale.");
     }
   };
-  const del = async (id:string) => {
-    if (!confirm("Delete this sale?")) return;
-    try { await httpsCallable(functions,"deleteSale")({ id }); }
-    catch (e:any){ alert(e?.message || "Delete failed"); }
+  const del=async(id:string)=>{
+    if(!confirm("Delete this sale?"))return;
+    try{ await httpsCallable(functions,"deleteSale")({id}); }
+    catch(e:any){ alert(e?.message||"Delete failed"); }
   };
 
   return (
     <Section title="Sales">
-      <div className="mb-4">
-        <Button onClick={()=>setEditing({ ...defaultSale })}>Add Opportunity</Button>
-      </div>
-      {editing && (
+      <div className="mb-4"><Button onClick={()=>setEditing({...defaultSale})}>Add Opportunity</Button></div>
+      {editing&&(
         <div className="border border-gray-700 rounded p-4 mb-6">
           {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div><label className="text-xs text-gray-400">Name</label>
-              <Input value={editing.name} onChange={e=>setEditing({...editing, name:e.target.value})}/>
+              <Input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/>
             </div>
             <div><label className="text-xs text-gray-400">Amount</label>
-              <Input type="number" value={editing.amount ?? 0}
-                onChange={e=>setEditing({...editing, amount:Number(e.target.value)})}/>
+              <Input type="number" value={editing.amount??0}
+                onChange={e=>setEditing({...editing,amount:Number(e.target.value)})}/>
             </div>
             <div><label className="text-xs text-gray-400">Stage</label>
-              <Select value={editing.stage||"Lead"} onChange={e=>setEditing({...editing, stage:e.target.value})}>
+              <Select value={editing.stage||"Lead"} onChange={e=>setEditing({...editing,stage:e.target.value})}>
                 <option>Lead</option><option>Qualified</option><option>Negotiation</option><option>Won</option><option>Lost</option>
               </Select>
             </div>
@@ -386,13 +356,12 @@ const Sales: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="space-y-2">
-        {list.map((r)=>(
+        {list.map(r=>(
           <div key={r.id} className="bg-gray-800 p-3 rounded flex items-center justify-between">
             <div>
               <div className="font-semibold">{r.name}</div>
-              <div className="text-xs text-gray-400">{r.stage} • {r.amount ?? 0}</div>
+              <div className="text-xs text-gray-400">{r.stage} • {r.amount??0}</div>
             </div>
             <div className="flex gap-2">
               <button className="px-3 py-1 rounded bg-gray-700"
@@ -407,55 +376,53 @@ const Sales: React.FC = () => {
   );
 };
 
-/* ---------- Scheduling (minimal bookings) ---------- */
+/* ---------- Scheduling ---------- */
 type Booking = { id?:string; title:string; start?:string; end?:string; status?:string; };
 const defaultBooking: Booking = { title:"", start:"", end:"", status:"Tentative" };
 
 const Scheduling: React.FC = () => {
-  const [list, setList] = React.useState<DocumentData[]>([]);
-  const [editing, setEditing] = React.useState<Booking|null>(null);
-  const [error, setError] = React.useState("");
+  const [list,setList]=React.useState<DocumentData[]>([]);
+  const [editing,setEditing]=React.useState<Booking|null>(null);
+  const [error,setError]=React.useState("");
 
-  React.useEffect(()=> {
-    const q = query(collection(db,"bookings"), orderBy("updatedAt","desc"));
-    return onSnapshot(q,(s)=> setList(s.docs.map(d=>({ id:d.id, ...d.data() }))));
+  React.useEffect(()=>{
+    const q=query(collection(db,"bookings"),orderBy("updatedAt","desc"));
+    return onSnapshot(q,s=>setList(s.docs.map(d=>({id:d.id,...d.data()}))));
   },[]);
 
-  const save = async () => {
-    if (!editing) return;
+  const save=async()=>{
+    if(!editing) return;
     setError("");
-    try {
+    try{
       await httpsCallable(functions,"upsertBooking")({ id: editing.id || null, booking: editing });
       setEditing(null);
-    } catch (e:any) {
-      setError(e?.message || e?.details || e?.code || "Failed to save booking.");
+    }catch(e:any){
+      setError(e?.message||e?.details||e?.code||"Failed to save booking.");
     }
   };
-  const del = async (id:string) => {
-    if (!confirm("Delete this booking?")) return;
-    try { await httpsCallable(functions,"deleteBooking")({ id }); }
-    catch (e:any){ alert(e?.message || "Delete failed"); }
+  const del=async(id:string)=>{
+    if(!confirm("Delete this booking?"))return;
+    try{ await httpsCallable(functions,"deleteBooking")({id}); }
+    catch(e:any){ alert(e?.message||"Delete failed"); }
   };
 
   return (
     <Section title="Scheduling">
-      <div className="mb-4">
-        <Button onClick={()=>setEditing({ ...defaultBooking })}>Add Booking</Button>
-      </div>
-      {editing && (
+      <div className="mb-4"><Button onClick={()=>setEditing({...defaultBooking})}>Add Booking</Button></div>
+      {editing&&(
         <div className="border border-gray-700 rounded p-4 mb-6">
           {error && <div className="text-red-400 text-sm mb-2">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div><label className="text-xs text-gray-400">Title</label>
-              <Input value={editing.title} onChange={e=>setEditing({...editing, title:e.target.value})}/>
+              <Input value={editing.title} onChange={e=>setEditing({...editing,title:e.target.value})}/>
             </div>
             <div><label className="text-xs text-gray-400">Start</label>
               <Input type="datetime-local" value={editing.start||""}
-                onChange={e=>setEditing({...editing, start:e.target.value})}/>
+                onChange={e=>setEditing({...editing,start:e.target.value})}/>
             </div>
             <div><label className="text-xs text-gray-400">End</label>
               <Input type="datetime-local" value={editing.end||""}
-                onChange={e=>setEditing({...editing, end:e.target.value})}/>
+                onChange={e=>setEditing({...editing,end:e.target.value})}/>
             </div>
           </div>
           <div className="mt-3 flex gap-2">
@@ -464,9 +431,8 @@ const Scheduling: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="space-y-2">
-        {list.map((b)=>(
+        {list.map(b=>(
           <div key={b.id} className="bg-gray-800 p-3 rounded flex items-center justify-between">
             <div>
               <div className="font-semibold">{b.title}</div>
@@ -485,7 +451,7 @@ const Scheduling: React.FC = () => {
   );
 };
 
-/* ---------- Main Shell ---------- */
+/* ---------- Shell ---------- */
 const Shell: React.FC<{ user: User }> = ({ user }) => {
   const [tab, setTab] = React.useState<"clients"|"inventory"|"sales"|"sched">("clients");
   return (
@@ -529,4 +495,4 @@ const App: React.FC = () => {
   return user ? <Shell user={user}/> : <Login/>;
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+export default App;
