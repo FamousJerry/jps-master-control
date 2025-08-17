@@ -1,211 +1,146 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { setGlobalOptions } from "firebase-functions/v2";
-import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
-setGlobalOptions({ region: "us-central1" });
-initializeApp();
-const db = getFirestore();
-const TS = () => FieldValue.serverTimestamp();
+if (!admin.apps.length) admin.initializeApp();
+const db = admin.firestore();
+const now = admin.firestore.FieldValue.serverTimestamp();
 
-/* ---------- helpers ---------- */
-function requireAuth(ctx: { auth?: { uid: string } | null }) {
-  if (!ctx.auth) throw new HttpsError("unauthenticated", "Sign in required.");
+function requireAuth(ctx: functions.https.CallableContext) {
+  if (!ctx.auth) throw new functions.https.HttpsError("unauthenticated", "Sign in required.");
 }
-const csv = (v: any): string[] =>
-  Array.isArray(v) ? v.map(String).map(s => s.trim()).filter(Boolean)
-  : String(v ?? "").split(",").map(s => s.trim()).filter(Boolean);
-const pct = (n: any) => {
-  const v = Number(n ?? 0);
-  return isNaN(v) ? 0 : Math.min(100, Math.max(0, v));
-};
+
+function cleanTagsCSV(csv?: string): string[] {
+  if (!csv) return [];
+  return csv.split(",").map(s => s.trim()).filter(Boolean);
+}
 
 /* ---------- Clients ---------- */
-const vClient = (c: any) => {
-  const fe: Record<string,string> = {};
-  if (!String(c.legalName||"").trim()) fe.legalName = "Required.";
-  if (c.vatRegistered && !String(c.taxId||"").trim()) fe.taxId = "Required when VAT Registered.";
-  if ((c.discountRate ?? 0) < 0 || (c.discountRate ?? 0) > 100) fe.discountRate = "0 - 100.";
-  return fe;
-};
-
-export const upsertClient = onCall(async (req) => {
-  requireAuth(req);
-  const { id = null, client = {} } = req.data || {};
-  const fieldErrors = vClient(client);
-  if (Object.keys(fieldErrors).length) throw new HttpsError("invalid-argument","Validation failed",{ fieldErrors });
+export const upsertClient = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id, client } = data as { id?: string | null; client: any };
+  if (!client || typeof client !== "object") throw new functions.https.HttpsError("invalid-argument", "client object required");
+  if (!client.legalName) throw new functions.https.HttpsError("invalid-argument", "legalName is required");
 
   const payload = {
-    legalName: String(client.legalName||""),
-    tradingName: String(client.tradingName||""),
-    website: String(client.website||""),
-    industry: client.industry || "TV",
-    status: client.status || "Prospect",
-    tier: client.tier || "B",
-    tags: csv(client.tags),
-    taxId: String(client.taxId||""),
+    legalName: String(client.legalName),
+    tradingName: client.tradingName ? String(client.tradingName) : "",
+    industry: client.industry ? String(client.industry) : "TV",
+    status: client.status ? String(client.status) : "Prospect",
+    tier: client.tier ? String(client.tier) : "B",
+    taxId: client.taxId ? String(client.taxId) : "",
     vatRegistered: !!client.vatRegistered,
-    ndaOnFile: !!client.ndaOnFile,
-    vendorFormUrl: String(client.vendorFormUrl||""),
-    currency: client.currency || "THB",
-    paymentTerms: client.paymentTerms || "Net 30",
-    discountRate: pct(client.discountRate),
-    poRequired: !!client.poRequired,
-    billingEmails: csv(client.billingEmails),
-    billingAddress: {
-      line1: String(client?.billingAddress?.line1||""),
-      line2: String(client?.billingAddress?.line2||""),
-      city: String(client?.billingAddress?.city||""),
-      state: String(client?.billingAddress?.state||""),
-      postcode: String(client?.billingAddress?.postcode||""),
-      country: String(client?.billingAddress?.country||""),
-    },
-    contacts: Array.isArray(client.contacts) ? client.contacts.map((c:any)=>({
-      name: String(c?.name||""), title: String(c?.title||""), email: String(c?.email||""), phone: String(c?.phone||""), isPrimary: !!c?.isPrimary
-    })) : [],
-    updatedAt: TS(),
+    discountRate: Number(client.discountRate || 0),
+    tags: Array.isArray(client.tags) ? client.tags : cleanTagsCSV(client.tags),
+    updatedAt: now,
   };
 
-  if (id) { await db.collection("clients").doc(String(id)).set(payload,{merge:true}); return { ok:true, id:String(id) }; }
-
-  const clientId = await db.runTransaction(async trx => {
-    const ref = db.collection("counters").doc("client");
-    const snap = await trx.get(ref);
-    let current = Number(snap.exists ? snap.get("current_value") : 100000);
-    if (!Number.isFinite(current)) current = 100000;
-    const next = current + 1;
-    trx.set(ref, { current_value: next }, { merge: true });
-    return `CL-${next}`;
-  });
-
-  const doc = await db.collection("clients").add({ ...payload, clientId, createdAt: TS() });
-  return { ok:true, id: doc.id, clientId };
+  if (id) {
+    await db.collection("clients").doc(id).set(payload, { merge: true });
+    return { ok: true, id };
+  } else {
+    const doc = await db.collection("clients").add({ ...payload, createdAt: now });
+    return { ok: true, id: doc.id };
+  }
 });
 
-export const deleteClient = onCall(async (req) => {
-  requireAuth(req);
-  const { id } = req.data || {};
-  if (!id) throw new HttpsError("invalid-argument","id required");
-  await db.collection("clients").doc(String(id)).delete();
-  return { ok:true };
+export const deleteClient = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id } = data as { id: string };
+  if (!id) throw new functions.https.HttpsError("invalid-argument", "id required");
+  await db.collection("clients").doc(id).delete();
+  return { ok: true };
 });
 
 /* ---------- Inventory ---------- */
-const vItem = (i:any) => {
-  const fe:Record<string,string> = {};
-  if (!String(i.name||"").trim()) fe.name = "Required.";
-  if ((i.quantity??0) < 0) fe.quantity=">= 0.";
-  if ((i.unitCost??0) < 0) fe.unitCost=">= 0.";
-  if ((i.rentalRate??0) < 0) fe.rentalRate=">= 0.";
-  return fe;
-};
+export const upsertInventory = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id, item } = data as { id?: string | null; item: any };
+  if (!item || typeof item !== "object") throw new functions.https.HttpsError("invalid-argument", "item required");
+  if (!item.name) throw new functions.https.HttpsError("invalid-argument", "name is required");
 
-export const upsertInventory = onCall(async (req) => {
-  requireAuth(req);
-  const { id=null, item={} } = req.data || {};
-  const fieldErrors = vItem(item);
-  if (Object.keys(fieldErrors).length) throw new HttpsError("invalid-argument","Validation failed",{ fieldErrors });
   const payload = {
-    name: String(item.name||""),
-    sku: String(item.sku||""),
-    category: String(item.category||""),
-    location: String(item.location||""),
-    status: item.status || "Available",
-    quantity: Number(item.quantity||0),
-    unitCost: Number(item.unitCost||0),
-    rentalRate: Number(item.rentalRate||0),
-    serialNumber: String(item.serialNumber||""),
-    tags: csv(item.tags),
-    notes: String(item.notes||""),
-    updatedAt: TS(),
+    name: String(item.name),
+    quantity: Number(item.quantity || 0),
+    rentalRate: Number(item.rentalRate || 0),
+    updatedAt: now,
   };
-  if (id) { await db.collection("inventory").doc(String(id)).set(payload,{merge:true}); return { ok:true, id:String(id) }; }
-  const doc = await db.collection("inventory").add({ ...payload, createdAt: TS() });
-  return { ok:true, id: doc.id };
+
+  if (id) {
+    await db.collection("inventory").doc(id).set(payload, { merge: true });
+    return { ok: true, id };
+  } else {
+    const doc = await db.collection("inventory").add({ ...payload, createdAt: now });
+    return { ok: true, id: doc.id };
+  }
 });
 
-export const deleteInventory = onCall(async (req) => {
-  requireAuth(req);
-  const { id } = req.data || {};
-  if (!id) throw new HttpsError("invalid-argument","id required");
-  await db.collection("inventory").doc(String(id)).delete();
-  return { ok:true };
+export const deleteInventory = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id } = data as { id: string };
+  if (!id) throw new functions.https.HttpsError("invalid-argument", "id required");
+  await db.collection("inventory").doc(id).delete();
+  return { ok: true };
 });
 
 /* ---------- Sales ---------- */
-const vSale = (s:any) => {
-  const fe:Record<string,string> = {};
-  if (!String(s.name||"").trim()) fe.name="Required.";
-  if ((s.amount??0) < 0) fe.amount=">= 0.";
-  return fe;
-};
+export const upsertSale = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id, sale } = data as { id?: string | null; sale: any };
+  if (!sale || typeof sale !== "object") throw new functions.https.HttpsError("invalid-argument", "sale required");
+  if (!sale.name) throw new functions.https.HttpsError("invalid-argument", "name is required");
 
-export const upsertSale = onCall(async (req) => {
-  requireAuth(req);
-  const { id=null, sale={} } = req.data || {};
-  const fieldErrors = vSale(sale);
-  if (Object.keys(fieldErrors).length) throw new HttpsError("invalid-argument","Validation failed",{ fieldErrors });
   const payload = {
-    name: String(sale.name||""),
-    clientId: String(sale.clientId||""),
-    stage: sale.stage || "Lead",
-    amount: Number(sale.amount||0),
-    currency: sale.currency || "THB",
-    closeDate: String(sale.closeDate||""),
-    ownerEmail: String(sale.ownerEmail||""),
-    tags: csv(sale.tags),
-    notes: String(sale.notes||""),
-    updatedAt: TS(),
+    name: String(sale.name),
+    amount: Number(sale.amount || 0),
+    stage: sale.stage ? String(sale.stage) : "Lead",
+    updatedAt: now,
   };
-  if (id) { await db.collection("sales").doc(String(id)).set(payload,{merge:true}); return { ok:true, id:String(id) }; }
-  const doc = await db.collection("sales").add({ ...payload, createdAt: TS() });
-  return { ok:true, id: doc.id };
+
+  if (id) {
+    await db.collection("sales").doc(id).set(payload, { merge: true });
+    return { ok: true, id };
+  } else {
+    const doc = await db.collection("sales").add({ ...payload, createdAt: now });
+    return { ok: true, id: doc.id };
+  }
 });
 
-export const deleteSale = onCall(async (req) => {
-  requireAuth(req);
-  const { id } = req.data || {};
-  if (!id) throw new HttpsError("invalid-argument","id required");
-  await db.collection("sales").doc(String(id)).delete();
-  return { ok:true };
+export const deleteSale = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id } = data as { id: string };
+  if (!id) throw new functions.https.HttpsError("invalid-argument", "id required");
+  await db.collection("sales").doc(id).delete();
+  return { ok: true };
 });
 
-/* ---------- Bookings (Scheduling) ---------- */
-const vBooking = (b:any) => {
-  const fe:Record<string,string> = {};
-  if (!String(b.title||"").trim()) fe.title="Required.";
-  if (!String(b.start||"").trim()) fe.start="Required.";
-  if (!String(b.end||"").trim()) fe.end="Required.";
-  if (b.start && b.end && new Date(b.start).getTime() >= new Date(b.end).getTime())
-    fe.end = "End must be after start.";
-  return fe;
-};
+/* ---------- Bookings ---------- */
+export const upsertBooking = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id, booking } = data as { id?: string | null; booking: any };
+  if (!booking || typeof booking !== "object") throw new functions.https.HttpsError("invalid-argument", "booking required");
+  if (!booking.title) throw new functions.https.HttpsError("invalid-argument", "title is required");
 
-export const upsertBooking = onCall(async (req) => {
-  requireAuth(req);
-  const { id=null, booking={} } = req.data || {};
-  const fieldErrors = vBooking(booking);
-  if (Object.keys(fieldErrors).length) throw new HttpsError("invalid-argument","Validation failed",{ fieldErrors });
   const payload = {
-    title: String(booking.title||""),
-    resourceName: String(booking.resourceName||""),
-    status: booking.status || "Tentative",
-    start: String(booking.start||""),
-    end: String(booking.end||""),
-    clientId: String(booking.clientId||""),
-    location: String(booking.location||""),
-    notes: String(booking.notes||""),
-    updatedAt: TS(),
+    title: String(booking.title),
+    start: booking.start ? String(booking.start) : "",
+    end: booking.end ? String(booking.end) : "",
+    status: booking.status ? String(booking.status) : "Tentative",
+    updatedAt: now,
   };
-  if (id) { await db.collection("bookings").doc(String(id)).set(payload,{merge:true}); return { ok:true, id:String(id) }; }
-  const doc = await db.collection("bookings").add({ ...payload, createdAt: TS() });
-  return { ok:true, id: doc.id };
+
+  if (id) {
+    await db.collection("bookings").doc(id).set(payload, { merge: true });
+    return { ok: true, id };
+  } else {
+    const doc = await db.collection("bookings").add({ ...payload, createdAt: now });
+    return { ok: true, id: doc.id };
+  }
 });
 
-export const deleteBooking = onCall(async (req) => {
-  requireAuth(req);
-  const { id } = req.data || {};
-  if (!id) throw new HttpsError("invalid-argument","id required");
-  await db.collection("bookings").doc(String(id)).delete();
-  return { ok:true };
+export const deleteBooking = functions.region("us-central1").https.onCall(async (data, ctx) => {
+  requireAuth(ctx);
+  const { id } = data as { id: string };
+  if (!id) throw new functions.https.HttpsError("invalid-argument", "id required");
+  await db.collection("bookings").doc(id).delete();
+  return { ok: true };
 });
