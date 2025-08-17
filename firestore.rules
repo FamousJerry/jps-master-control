@@ -1,74 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    function authed()        { return request.auth != null; }
-    function emailVerified() { return authed() && request.auth.token.email_verified == true; }
-
-    // Prefer token.role if present, else read role from users/{uid}
-    function userRole() {
-      return authed()
-        ? (request.auth.token.role != null
-            ? request.auth.token.role
-            : get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role)
-        : null;
+  match /databases/{db}/documents {
+    function isSignedIn() { return request.auth != null; }
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
-    function hasRole(r)       { return emailVerified() && userRole() == r; }
-    function anyRole(arr)     { return emailVerified() && (userRole() in arr); }
-
-    // Default deny
-    match /{document=**} { allow read, write: if false; }
-
-    // Users profile docs
-    match /users/{uid} {
-      // Let a user read their own profile even before we set token claims
-      allow read: if authed() && request.auth.uid == uid || hasRole('Admin');
-      // Only Admin can write profiles
-      allow write: if hasRole('Admin');
-    }
-
-    // Client Central
-    match /clients/{id} {
-      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
-      allow write: if anyRole(['Admin','Sales']);
-    }
-    match /clients/{id}/contacts/{cid} {
-      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech']);
-      allow write: if anyRole(['Admin','Sales']);
-    }
-
-    // Activities
-    match /activities/{id} {
-      allow read: if anyRole(['Admin','Sales','Scheduler','Tech']);
-      allow create: if anyRole(['Admin','Sales','Scheduler','Tech']);
-      allow update, delete: if false;
-    }
-
-    // Inventory
-    match /inventoryItems/{id} {
-      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
-      allow write: if anyRole(['Admin','Warehouse Manager']);
-    }
-    match /kits/{id} {
-      allow read:  if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
-      allow write: if anyRole(['Admin','Warehouse Manager']);
-    }
-    match /inventoryEvents/{id} {
-      allow read: if anyRole(['Admin','Sales','Scheduler','Tech','Warehouse Manager','Warehouse Staff']);
-      allow create: if anyRole(['Admin','Tech','Warehouse Manager','Warehouse Staff']);
-      allow update, delete: if false;
-    }
-
-    // Sales / Scheduling
-    match /deals/{id}   { allow read: if anyRole(['Admin','Sales','Scheduler']); allow write: if anyRole(['Admin','Sales']); }
-    match /quotes/{id}  { allow read, write: if anyRole(['Admin','Sales']); }
-    match /jobs/{id}    { allow read: if anyRole(['Admin','Sales','Scheduler','Warehouse Manager','Warehouse Staff']); allow write: if anyRole(['Admin','Scheduler']); }
-    match /assignments/{id} {
-      allow read: if anyRole(['Admin','Sales','Scheduler','Warehouse Manager','Warehouse Staff']);
-      allow write: if anyRole(['Admin','Scheduler']);
-    }
-
-    // Counters / audits
-    match /counters/{id} { allow read: if hasRole('Admin'); allow write: if false; }
-    match /audits/{id}   { allow read: if hasRole('Admin'); allow create: if emailVerified(); allow update, delete: if false; }
   }
 }
