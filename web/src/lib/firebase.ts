@@ -1,31 +1,27 @@
+// web/src/lib/firebase.ts
 import { initializeApp } from "firebase/app";
-import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut,
-} from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
+// Hard-coded project config (safe for client use)
+// If you later prefer env vars, we can switch to Vite envs.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyABNyyrjBNTHc0LCV3nauqdTCsp-1blXAo",
+  authDomain: "jps-app-468911.firebaseapp.com",
+  projectId: "jps-app-468911",
+  storageBucket: "jps-app-468911.appspot.com",
+  messagingSenderId: "532726782263",
+  appId: "1:532726782263:web:0e227d27bc61ef719962b2",
+  measurementId: "G-8HXP33E0S8",
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-// Functions deployed in us-central1 per your setup
-const functions = getFunctions(app, "us-central1");
 
-async function signInGoogle() {
-  const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
-}
-async function doSignOut() {
-  await signOut(auth);
-}
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-export { auth, db, functions, signInGoogle, doSignOut };
+// Not used for Client Central anymore, but exported to avoid import errors elsewhere
+export const functions = getFunctions(app);
+
+export const googleProvider = new GoogleAuthProvider();
