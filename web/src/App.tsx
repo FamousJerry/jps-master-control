@@ -1,22 +1,20 @@
-// web/src/App.tsx
 import React from "react";
-import { auth, db, googleProvider } from "./lib/firebase";
+import "./index.css";
+
+import { auth, db, signInGoogle, doSignOut } from "./lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
 import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  User,
-} from "firebase/auth";
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
   addDoc,
-  setDoc,
+  collection,
   deleteDoc,
   doc,
+  onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
+  setDoc,
+  updateDoc,
+  DocumentData,
 } from "firebase/firestore";
 
 /* ---------- small UI helpers ---------- */
@@ -24,7 +22,7 @@ function Button(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      className={`px-3 py-2 rounded bg-green-600 hover:bg-green-500 text-black font-semibold disabled:opacity-50 ${
+      className={`px-3 py-2 rounded bg-green-600 hover:bg-green-500 text-black font-semibold ${
         props.className || ""
       }`}
     />
@@ -50,19 +48,57 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     />
   );
 }
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <div className="bg-[#1f1f1f] rounded p-4 mb-8">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-xl font-bold">{title}</h3>
+    </div>
+    {children}
+  </div>
+);
 
-/* ---------- types ---------- */
+/* ---------- Types ---------- */
 type Client = {
   id?: string;
-  clientId?: string;
   legalName: string;
-  tradingName?: string;
+  tradingName: string;
   industry: "TV" | "Film" | "Music Video" | "Commercial" | "Other";
   status: "Prospect" | "Active" | "Inactive";
   tier: "A" | "B" | "C";
-  tags?: string[];
-  updatedAt?: any;
+  tags?: string;
   createdAt?: any;
+  updatedAt?: any;
+};
+
+type InventoryItem = {
+  id?: string;
+  name: string;
+  category: string;
+  status: "Available" | "Out" | "Repair";
+  ratePerDay?: number;
+  createdAt?: any;
+  updatedAt?: any;
+};
+
+type Sale = {
+  id?: string;
+  clientName: string;
+  amount: number;
+  status: "Draft" | "Sent" | "Paid" | "Void";
+  createdAt?: any;
+  updatedAt?: any;
+};
+
+type Booking = {
+  id?: string;
+  title: string;
+  clientName: string;
+  date: string; // ISO yyyy-mm-dd
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 /* ---------- Login ---------- */
@@ -71,7 +107,7 @@ const Login: React.FC = () => {
   const doLogin = async () => {
     setErr("");
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInGoogle();
     } catch (e: any) {
       setErr(e?.message || "Login failed");
     }
@@ -81,291 +117,669 @@ const Login: React.FC = () => {
       <div className="bg-black/70 p-8 rounded w-full max-w-sm">
         <h1 className="logo-neon text-3xl font-bold text-center mb-4">Jingjai</h1>
         {err && <div className="text-red-400 text-sm mb-2">{err}</div>}
-        <Button onClick={doLogin} className="w-full">Sign in with Google</Button>
+        <Button onClick={doLogin} className="w-full">
+          Sign in with Google
+        </Button>
       </div>
     </div>
   );
 };
 
-/* ---------- Client Central (Firestore direct) ---------- */
-const INDUSTRIES = ["TV", "Film", "Music Video", "Commercial", "Other"] as const;
-const STATUSES = ["Prospect", "Active", "Inactive"] as const;
-const TIERS = ["A", "B", "C"] as const;
-
-const ClientCentral: React.FC<{ user: User }> = ({ user }) => {
-  const [clients, setClients] = React.useState<Client[]>([]);
-  const [editing, setEditing] = React.useState<Client | null>(null);
-  const [form, setForm] = React.useState({
-    id: "",
+/* ---------- Clients module (Firestore direct) ---------- */
+function Clients() {
+  const [items, setItems] = React.useState<Client[]>([]);
+  const [editing, setEditing] = React.useState<Client>({
     legalName: "",
     tradingName: "",
     industry: "TV",
     status: "Prospect",
     tier: "B",
-    tagsCSV: "",
+    tags: "",
   });
   const [error, setError] = React.useState<string>("");
 
-  // subscribe
   React.useEffect(() => {
-    const q = query(collection(db, "clients"), orderBy("updatedAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
+    const q = query(collection(db, "clients"), orderBy("legalName"));
+    return onSnapshot(q, (snap) => {
       const rows: Client[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-      setClients(rows);
+      setItems(rows);
     });
-    return () => unsub();
   }, []);
 
-  // open new form
-  const startNew = () => {
-    setError("");
-    setEditing(null);
-    setForm({
-      id: "",
+  const resetForm = () =>
+    setEditing({
       legalName: "",
       tradingName: "",
       industry: "TV",
       status: "Prospect",
       tier: "B",
-      tagsCSV: "",
+      tags: "",
     });
-  };
 
-  // open edit form
-  const startEdit = (c: Client) => {
+  async function save() {
     setError("");
-    setEditing(c);
-    setForm({
-      id: c.id || "",
-      legalName: c.legalName || "",
-      tradingName: c.tradingName || "",
-      industry: (c.industry as any) || "TV",
-      status: (c.status as any) || "Prospect",
-      tier: (c.tier as any) || "B",
-      tagsCSV: (c.tags || []).join(", "),
-    });
-  };
-
-  const cancel = () => {
-    setEditing(null);
-    setError("");
-  };
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-  };
-
-  async function saveClient() {
-    setError("");
-    // simple client-side validation
-    const errs: string[] = [];
-    if (!form.legalName.trim()) errs.push("Company Legal Name is required");
-    if (!INDUSTRIES.includes(form.industry as any)) errs.push("Industry invalid");
-    if (!STATUSES.includes(form.status as any)) errs.push("Status invalid");
-    if (!TIERS.includes(form.tier as any)) errs.push("Tier invalid");
-    if (errs.length) {
-      setError(errs.join("; "));
-      return;
-    }
-
-    const payload = {
-      legalName: form.legalName.trim(),
-      tradingName: form.tradingName.trim(),
-      industry: form.industry,
-      status: form.status,
-      tier: form.tier,
-      tags: form.tagsCSV
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      updatedAt: serverTimestamp(),
-      updatedBy: user.uid,
-    };
-
     try {
-      if (form.id) {
-        await setDoc(doc(db, "clients", form.id), payload, { merge: true });
+      const payload: Client = {
+        legalName: editing.legalName.trim(),
+        tradingName: editing.tradingName.trim(),
+        industry: editing.industry,
+        status: editing.status,
+        tier: editing.tier,
+        tags: editing.tags?.trim() || "",
+        updatedAt: serverTimestamp(),
+      };
+
+      if (!payload.legalName) throw new Error("Company Legal Name is required.");
+
+      if (editing.id) {
+        await updateDoc(doc(db, "clients", editing.id), payload as any);
       } else {
         await addDoc(collection(db, "clients"), {
           ...payload,
           createdAt: serverTimestamp(),
-          createdBy: user.uid,
         });
       }
-      setEditing(null);
-      setError("");
+      resetForm();
     } catch (e: any) {
-      const message =
+      const msg =
         e?.message ||
         e?.details ||
         e?.code ||
-        "Failed to save client (Firestore write).";
-      setError(String(message));
+        "Failed to save client. (Firestore write)";
+      setError(String(msg));
+      console.error("save client error:", e);
     }
   }
 
-  async function deleteClient(id: string) {
-    if (!confirm("Delete this client?")) return;
+  async function del(id: string) {
+    setError("");
     try {
       await deleteDoc(doc(db, "clients", id));
+      if (editing.id === id) resetForm();
     } catch (e: any) {
-      alert(e?.message || "Failed to delete client.");
+      const msg =
+        e?.message || e?.details || e?.code || "Delete failed (Firestore)";
+      setError(String(msg));
+      console.error("delete client error:", e);
     }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Client Central</h2>
-        <Button onClick={startNew}>Add New Client</Button>
+    <Section title="Client Central">
+      {error && <div className="text-red-400 mb-3 text-sm">{error}</div>}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs text-gray-400">Company Legal Name</label>
+          <Input
+            value={editing.legalName}
+            onChange={(e) => setEditing({ ...editing, legalName: e.target.value })}
+            placeholder="Netflix"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Trading Name</label>
+          <Input
+            value={editing.tradingName}
+            onChange={(e) => setEditing({ ...editing, tradingName: e.target.value })}
+            placeholder="NFLX"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Industry</label>
+          <Select
+            value={editing.industry}
+            onChange={(e) =>
+              setEditing({ ...editing, industry: e.target.value as Client["industry"] })
+            }
+          >
+            {["TV", "Film", "Music Video", "Commercial", "Other"].map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Status</label>
+          <Select
+            value={editing.status}
+            onChange={(e) =>
+              setEditing({ ...editing, status: e.target.value as Client["status"] })
+            }
+          >
+            {["Prospect", "Active", "Inactive"].map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Tier</label>
+          <Select
+            value={editing.tier}
+            onChange={(e) =>
+              setEditing({ ...editing, tier: e.target.value as Client["tier"] })
+            }
+          >
+            {["A", "B", "C"].map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Tags (comma separated)</label>
+          <Input
+            value={editing.tags}
+            onChange={(e) => setEditing({ ...editing, tags: e.target.value })}
+            placeholder="Studio, Preferred"
+          />
+        </div>
       </div>
 
-      {/* list */}
-      <div className="space-y-3 mb-8">
-        {clients.map((c) => (
-          <div
-            key={c.id}
-            className="bg-gray-700 p-3 rounded-lg flex items-start justify-between"
-          >
+      <div className="mt-3 flex gap-2">
+        <Button onClick={save}>Save Client</Button>
+        <Button
+          className="bg-gray-700 hover:bg-gray-600 text-white"
+          onClick={resetForm}
+        >
+          Cancel
+        </Button>
+      </div>
+
+      <div className="mt-6 text-sm text-gray-400">
+        {items.length === 0 ? "No clients yet." : `${items.length} client(s)`}
+      </div>
+
+      <ul className="mt-3 divide-y divide-gray-800">
+        {items.map((c) => (
+          <li key={c.id} className="py-2 flex items-center justify-between">
             <div>
-              <div className="font-bold text-lg">{c.tradingName || c.legalName}</div>
-              <div className="text-xs text-gray-300">
-                {c.industry} • {c.status} • Tier {c.tier}
+              <div className="font-semibold">{c.legalName}</div>
+              <div className="text-xs text-gray-400">
+                {c.tradingName} • {c.industry} • {c.status} • Tier {c.tier}
               </div>
-              {c.clientId && (
-                <div className="text-[11px] text-gray-400 mt-1">{c.clientId}</div>
-              )}
-              {c.tags && c.tags.length > 0 && (
-                <div className="text-xs text-gray-300 mt-1">
-                  Tags: {c.tags.join(", ")}
-                </div>
-              )}
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => startEdit(c)}>Edit</Button>
-              <Button onClick={() => deleteClient(c.id!)} className="bg-red-600 hover:bg-red-500">
+              <Button
+                className="bg-amber-500 hover:bg-amber-400"
+                onClick={() => setEditing(c)}
+              >
+                Edit
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-500"
+                onClick={() => c.id && del(c.id)}
+              >
                 Delete
               </Button>
             </div>
-          </div>
+          </li>
         ))}
-        {clients.length === 0 && (
-          <div className="text-sm text-gray-400">No clients yet.</div>
-        )}
-      </div>
-
-      {/* editor */}
-      {(editing || form.id === "") && (
-        <div className="bg-[#1f1f1f] p-4 rounded">
-          <h3 className="text-xl font-bold mb-3">
-            {form.id ? "Edit Client" : "Add Client"}
-          </h3>
-
-          {error && <div className="text-red-400 text-sm mb-3">{error}</div>}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-400">Company Legal Name</label>
-              <Input name="legalName" value={form.legalName} onChange={onChange} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Trading Name</label>
-              <Input name="tradingName" value={form.tradingName} onChange={onChange} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Industry</label>
-              <Select name="industry" value={form.industry} onChange={onChange}>
-                {INDUSTRIES.map((i) => (
-                  <option key={i} value={i}>{i}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Status</label>
-              <Select name="status" value={form.status} onChange={onChange}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Tier</label>
-              <Select name="tier" value={form.tier} onChange={onChange}>
-                {TIERS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Tags (CSV)</label>
-              <Input
-                name="tagsCSV"
-                placeholder="vip, netflix, key-account"
-                value={form.tagsCSV}
-                onChange={onChange}
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <Button onClick={saveClient}>Save Client</Button>
-            <Button className="bg-gray-500 hover:bg-gray-400" onClick={cancel}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+      </ul>
+    </Section>
   );
-};
+}
 
-/* ---------- Shell ---------- */
-const App: React.FC = () => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [view, setView] = React.useState<"dashboard" | "clients" | "inventory" | "sales" | "scheduling">("clients");
-  const [loading, setLoading] = React.useState(true);
+/* ---------- Inventory (Firestore direct) ---------- */
+function Inventory() {
+  const [items, setItems] = React.useState<InventoryItem[]>([]);
+  const [editing, setEditing] = React.useState<InventoryItem>({
+    name: "",
+    category: "",
+    status: "Available",
+    ratePerDay: 0,
+  });
+  const [error, setError] = React.useState<string>("");
 
   React.useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
+    const q = query(collection(db, "inventory"), orderBy("name"));
+    return onSnapshot(q, (snap) => {
+      const rows: InventoryItem[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      setItems(rows);
     });
   }, []);
 
-  if (loading) return <div className="min-h-screen grid place-items-center">Loading…</div>;
+  const resetForm = () =>
+    setEditing({ name: "", category: "", status: "Available", ratePerDay: 0 });
+
+  async function save() {
+    setError("");
+    try {
+      const payload: InventoryItem = {
+        name: editing.name.trim(),
+        category: editing.category.trim(),
+        status: editing.status,
+        ratePerDay: Number(editing.ratePerDay || 0),
+        updatedAt: serverTimestamp(),
+      };
+      if (!payload.name) throw new Error("Item Name is required.");
+
+      if (editing.id) {
+        await updateDoc(doc(db, "inventory", editing.id), payload as any);
+      } else {
+        await addDoc(collection(db, "inventory"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+      }
+      resetForm();
+    } catch (e: any) {
+      setError(
+        e?.message || e?.details || e?.code || "Failed to save inventory item."
+      );
+      console.error("save inventory error:", e);
+    }
+  }
+
+  async function del(id: string) {
+    setError("");
+    try {
+      await deleteDoc(doc(db, "inventory", id));
+      if (editing.id === id) resetForm();
+    } catch (e: any) {
+      setError(e?.message || "Delete failed (inventory).");
+      console.error("delete inventory error:", e);
+    }
+  }
+
+  return (
+    <Section title="Inventory">
+      {error && <div className="text-red-400 mb-3 text-sm">{error}</div>}
+      <div className="grid grid-cols-4 gap-4">
+        <div>
+          <label className="text-xs text-gray-400">Name</label>
+          <Input
+            value={editing.name}
+            onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Category</label>
+          <Input
+            value={editing.category}
+            onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Status</label>
+          <Select
+            value={editing.status}
+            onChange={(e) =>
+              setEditing({
+                ...editing,
+                status: e.target.value as InventoryItem["status"],
+              })
+            }
+          >
+            {["Available", "Out", "Repair"].map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Rate / day</label>
+          <Input
+            type="number"
+            step="0.01"
+            value={editing.ratePerDay ?? 0}
+            onChange={(e) =>
+              setEditing({ ...editing, ratePerDay: Number(e.target.value) })
+            }
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <Button onClick={save}>Save Item</Button>
+        <Button
+          className="bg-gray-700 hover:bg-gray-600 text-white"
+          onClick={() =>
+            setEditing({ name: "", category: "", status: "Available", ratePerDay: 0 })
+          }
+        >
+          Cancel
+        </Button>
+      </div>
+
+      <ul className="mt-4 divide-y divide-gray-800">
+        {items.map((it) => (
+          <li key={it.id} className="py-2 flex items-center justify-between">
+            <div>
+              <div className="font-semibold">{it.name}</div>
+              <div className="text-xs text-gray-400">
+                {it.category} • {it.status} • ${it.ratePerDay?.toFixed(2)}/day
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="bg-amber-500 hover:bg-amber-400"
+                onClick={() => setEditing(it)}
+              >
+                Edit
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-500"
+                onClick={() => it.id && del(it.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/* ---------- Sales (Firestore direct) ---------- */
+function Sales() {
+  const [rows, setRows] = React.useState<Sale[]>([]);
+  const [editing, setEditing] = React.useState<Sale>({
+    clientName: "",
+    amount: 0,
+    status: "Draft",
+  });
+  const [error, setError] = React.useState<string>("");
+
+  React.useEffect(() => {
+    const q = query(collection(db, "sales"), orderBy("createdAt"));
+    return onSnapshot(q, (snap) =>
+      setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
+    );
+  }, []);
+
+  const reset = () => setEditing({ clientName: "", amount: 0, status: "Draft" });
+
+  async function save() {
+    setError("");
+    try {
+      const payload: Sale = {
+        clientName: editing.clientName.trim(),
+        amount: Number(editing.amount || 0),
+        status: editing.status,
+        updatedAt: serverTimestamp(),
+      };
+      if (!payload.clientName) throw new Error("Client Name is required.");
+      if (editing.id) {
+        await updateDoc(doc(db, "sales", editing.id), payload as any);
+      } else {
+        await addDoc(collection(db, "sales"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+      }
+      reset();
+    } catch (e: any) {
+      setError(e?.message || "Failed to save sale.");
+      console.error("save sale error:", e);
+    }
+  }
+
+  async function del(id: string) {
+    setError("");
+    try {
+      await deleteDoc(doc(db, "sales", id));
+      if (editing.id === id) reset();
+    } catch (e: any) {
+      setError(e?.message || "Delete failed (sale).");
+      console.error("delete sale error:", e);
+    }
+  }
+
+  return (
+    <Section title="Sales">
+      {error && <div className="text-red-400 mb-3 text-sm">{error}</div>}
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="text-xs text-gray-400">Client Name</label>
+          <Input
+            value={editing.clientName}
+            onChange={(e) => setEditing({ ...editing, clientName: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Amount</label>
+          <Input
+            type="number"
+            step="0.01"
+            value={editing.amount ?? 0}
+            onChange={(e) =>
+              setEditing({ ...editing, amount: Number(e.target.value) })
+            }
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Status</label>
+          <Select
+            value={editing.status}
+            onChange={(e) =>
+              setEditing({ ...editing, status: e.target.value as Sale["status"] })
+            }
+          >
+            {["Draft", "Sent", "Paid", "Void"].map((x) => (
+              <option key={x} value={x}>
+                {x}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <Button onClick={save}>Save Sale</Button>
+        <Button className="bg-gray-700 hover:bg-gray-600 text-white" onClick={reset}>
+          Cancel
+        </Button>
+      </div>
+
+      <ul className="mt-4 divide-y divide-gray-800">
+        {rows.map((r) => (
+          <li key={r.id} className="py-2 flex items-center justify-between">
+            <div>
+              <div className="font-semibold">{r.clientName}</div>
+              <div className="text-xs text-gray-400">
+                ${Number(r.amount).toFixed(2)} • {r.status}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="bg-amber-500 hover:bg-amber-400"
+                onClick={() => setEditing(r)}
+              >
+                Edit
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-500"
+                onClick={() => r.id && del(r.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/* ---------- Scheduling (Firestore direct) ---------- */
+function Scheduling() {
+  const [rows, setRows] = React.useState<Booking[]>([]);
+  const [editing, setEditing] = React.useState<Booking>({
+    title: "",
+    clientName: "",
+    date: "",
+  });
+  const [error, setError] = React.useState<string>("");
+
+  React.useEffect(() => {
+    const q = query(collection(db, "bookings"), orderBy("date"));
+    return onSnapshot(q, (snap) =>
+      setRows(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })))
+    );
+  }, []);
+
+  const reset = () => setEditing({ title: "", clientName: "", date: "" });
+
+  async function save() {
+    setError("");
+    try {
+      const payload: Booking = {
+        title: editing.title.trim(),
+        clientName: editing.clientName.trim(),
+        date: editing.date,
+        updatedAt: serverTimestamp(),
+      };
+      if (!payload.title) throw new Error("Title is required.");
+      if (!payload.date) throw new Error("Date is required (yyyy-mm-dd).");
+
+      if (editing.id) {
+        await updateDoc(doc(db, "bookings", editing.id), payload as any);
+      } else {
+        await addDoc(collection(db, "bookings"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+      }
+      reset();
+    } catch (e: any) {
+      setError(e?.message || "Failed to save booking.");
+      console.error("save booking error:", e);
+    }
+  }
+
+  async function del(id: string) {
+    setError("");
+    try {
+      await deleteDoc(doc(db, "bookings", id));
+      if (editing.id === id) reset();
+    } catch (e: any) {
+      setError(e?.message || "Delete failed (booking).");
+      console.error("delete booking error:", e);
+    }
+  }
+
+  return (
+    <Section title="Scheduling">
+      {error && <div className="text-red-400 mb-3 text-sm">{error}</div>}
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="text-xs text-gray-400">Title</label>
+          <Input
+            value={editing.title}
+            onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Client Name</label>
+          <Input
+            value={editing.clientName}
+            onChange={(e) => setEditing({ ...editing, clientName: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Date</label>
+          <Input
+            type="date"
+            value={editing.date}
+            onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <Button onClick={save}>Save Booking</Button>
+        <Button className="bg-gray-700 hover:bg-gray-600 text-white" onClick={reset}>
+          Cancel
+        </Button>
+      </div>
+
+      <ul className="mt-4 divide-y divide-gray-800">
+        {rows.map((r) => (
+          <li key={r.id} className="py-2 flex items-center justify-between">
+            <div>
+              <div className="font-semibold">{r.title}</div>
+              <div className="text-xs text-gray-400">
+                {r.clientName} • {r.date}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                className="bg-amber-500 hover:bg-amber-400"
+                onClick={() => setEditing(r)}
+              >
+                Edit
+              </Button>
+              <Button
+                className="bg-red-600 hover:bg-red-500"
+                onClick={() => r.id && del(r.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/* ---------- App container ---------- */
+const App: React.FC = () => {
+  const [user, setUser] = React.useState<User | null>(null);
+  const [tab, setTab] = React.useState<"clients" | "inventory" | "sales" | "sched">(
+    "clients"
+  );
+
+  React.useEffect(() => {
+    return onAuthStateChanged(auth, (u) => setUser(u));
+  }, []);
+
   if (!user) return <Login />;
 
   return (
-    <div>
-      {/* header */}
-      <header className="fixed top-0 left-0 right-0 bg-black z-50 p-4 md:px-8 flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <h1 className="text-lg md:text-2xl font-bold logo-neon">Jingjai Productions Master Control</h1>
-          <nav className="text-sm">
-            <a onClick={() => setView("clients")} className={`mr-4 cursor-pointer ${view==="clients" ? "text-green-400 font-bold" : "text-white"}`}>Client Central</a>
-            <a onClick={() => setView("inventory")} className={`mr-4 cursor-pointer ${view==="inventory" ? "text-green-400 font-bold" : "text-white"}`}>Inventory</a>
-            <a onClick={() => setView("sales")} className={`mr-4 cursor-pointer ${view==="sales" ? "text-green-400 font-bold" : "text-white"}`}>Sales</a>
-            <a onClick={() => setView("scheduling")} className={`cursor-pointer ${view==="scheduling" ? "text-green-400 font-bold" : "text-white"}`}>Scheduling</a>
-          </nav>
+    <div className="min-h-screen text-gray-200 bg-[#121212]">
+      <header className="border-b border-gray-800 p-4 flex items-center justify-between">
+        <div className="font-bold text-xl">Jingjai</div>
+        <div className="flex gap-2">
+          <Button
+            className={tab === "clients" ? "" : "bg-gray-700 hover:bg-gray-600 text-white"}
+            onClick={() => setTab("clients")}
+          >
+            Clients
+          </Button>
+          <Button
+            className={tab === "inventory" ? "" : "bg-gray-700 hover:bg-gray-600 text-white"}
+            onClick={() => setTab("inventory")}
+          >
+            Inventory
+          </Button>
+          <Button
+            className={tab === "sales" ? "" : "bg-gray-700 hover:bg-gray-600 text-white"}
+            onClick={() => setTab("sales")}
+          >
+            Sales
+          </Button>
+          <Button
+            className={tab === "sched" ? "" : "bg-gray-700 hover:bg-gray-600 text-white"}
+            onClick={() => setTab("sched")}
+          >
+            Scheduling
+          </Button>
         </div>
-        <div className="flex items-center gap-3 text-right">
-          <div className="hidden sm:block">
-            <div className="font-semibold">{user.displayName || user.email}</div>
-            <div className="text-xs text-gray-400">Signed in</div>
-          </div>
-          <Button className="bg-gray-500 hover:bg-gray-400" onClick={() => signOut(auth)}>Logout</Button>
-        </div>
+        <Button className="bg-gray-300 hover:bg-white" onClick={doSignOut}>
+          Sign out
+        </Button>
       </header>
 
-      {/* main */}
-      <main className="pt-24 px-4 md:px-8">
-        {view === "clients" && <ClientCentral user={user} />}
-        {view !== "clients" && (
-          <div className="text-sm text-gray-400">
-            Placeholder for <span className="font-semibold">{view}</span>. (We’ll wire these next.)
-          </div>
-        )}
+      <main className="max-w-5xl mx-auto p-4">
+        {tab === "clients" && <Clients />}
+        {tab === "inventory" && <Inventory />}
+        {tab === "sales" && <Sales />}
+        {tab === "sched" && <Scheduling />}
       </main>
     </div>
   );
