@@ -1,272 +1,122 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+// functions/src/index.ts
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-if (!admin.apps.length) admin.initializeApp();
-const db = admin.firestore();
-const now = admin.firestore.FieldValue.serverTimestamp();
+initializeApp();
+const db = getFirestore();
 
-/** --- helpers --- */
-function requireAuth(ctx: functions.https.CallableContext) {
-  if (!ctx.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "Sign in required.");
+const ALLOWED_ROLES = new Set(["Admin", "Manager"]);
+const STATUS = ["Prospect", "Active", "Inactive"];
+const INDUSTRY = ["TV", "Film", "Music Video", "Commercial", "Other"];
+const TIER = ["A", "B", "C"];
+
+function assertRole(ctx: Parameters<ReturnType<typeof onCall>>[0]) {
+  const role = (ctx.auth?.token?.role ?? "") as string;
+  if (!role || !ALLOWED_ROLES.has(role)) {
+    throw new HttpsError("permission-denied", "Requires Admin or Manager role.");
   }
+  return role;
 }
 
-function cleanTagsCSV(csv?: string): string[] {
-  if (!csv) return [];
-  return csv.split(",").map((s) => s.trim()).filter(Boolean);
-}
+export const upsertClient = onCall({ region: "us-central1" }, async (req) => {
+  // auth gate (clear message if you’re missing claims)
+  assertRole(req);
 
-const passthroughCodes = new Set([
-  "invalid-argument",
-  "unauthenticated",
-  "permission-denied",
-  "failed-precondition",
-]);
+  const d = req.data ?? {};
+  const problems: string[] = [];
 
-function wrapCallable<T>(
-  handler: (data: any, ctx: functions.https.CallableContext) => Promise<T>
-) {
-  return async (data: any, ctx: functions.https.CallableContext) => {
-    try {
-      requireAuth(ctx);
-      return await handler(data, ctx);
-    } catch (err: any) {
-      // Log full details to Functions logs
-      functions.logger.error("Callable failed", {
-        error: err?.stack || err?.message || String(err),
-        data: JSON.stringify(data ?? {}, null, 2).slice(0, 2000),
+  const needStr = (k: string) => {
+    const v = (d[k] ?? "").toString().trim();
+    if (!v) problems.push(`${k} is required`);
+    return v;
+  };
+
+  // required inputs
+  const legalName = needStr("legalName");
+  const tradingName = (d.tradingName ?? "").toString().trim();
+  const industry = needStr("industry");
+  const status = needStr("status");
+  const tier = needStr("tier");
+  const tagsRaw = (d.tags ?? "").toString();
+
+  // enum validation
+  if (!STATUS.includes(status)) problems.push(`status must be: ${STATUS.join(", ")}`);
+  if (!INDUSTRY.includes(industry)) problems.push(`industry must be: ${INDUSTRY.join(", ")}`);
+  if (!TIER.includes(tier)) problems.push(`tier must be: ${TIER.join(", ")}`);
+
+  if (problems.length) {
+    // this shows up in the UI as the exact message (no more “internal”)
+    throw new HttpsError("failed-precondition", problems.join("; "));
+  }
+
+  const tagList = tagsRaw
+    ? tagsRaw.split(",").map((t: string) => t.trim()).filter(Boolean)
+    : [];
+
+  try {
+    const now = new Date();
+    const uid = req.auth!.uid;
+
+    // update vs create
+    if (d.id) {
+      const docRef = db.collection("clients").doc(d.id as string);
+      await docRef.set(
+        {
+          legalName,
+          tradingName,
+          industry,
+          status,
+          tier,
+          tags: tagList,
+          updatedAt: now,
+          updatedBy: uid,
+        },
+        { merge: true }
+      );
+      return { ok: true, id: docRef.id, mode: "update" };
+    } else {
+      // sequential CL- id via counters/client
+      const counterRef = db.collection("counters").doc("client");
+      const next = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(counterRef);
+        let n = 100001;
+        if (snap.exists) n = (snap.data()!.current_value ?? 100000) + 1;
+        tx.set(counterRef, { current_value: n }, { merge: true });
+        return n;
       });
 
-      // Surface a useful message to the UI
-      const msg =
-        err?.message || err?.details || String(err) || "Unknown error";
-
-      const code = passthroughCodes.has(err?.code)
-        ? (err.code as functions.https.FunctionsErrorCode)
-        : "internal";
-
-      throw new functions.https.HttpsError(code, msg);
+      const docRef = await db.collection("clients").add({
+        legalName,
+        tradingName,
+        industry,
+        status,
+        tier,
+        tags: tagList,
+        clientId: `CL-${next}`,
+        createdAt: now,
+        createdBy: uid,
+        updatedAt: now,
+        updatedBy: uid,
+      });
+      return { ok: true, id: docRef.id, mode: "create" };
     }
-  };
-}
+  } catch (err: any) {
+    console.error("upsertClient error", { uid: req.auth?.uid, data: req.data, err });
+    // surface the actual message (still “internal” code, but readable message)
+    throw new HttpsError("internal", err?.message || "Unexpected error while saving client.");
+  }
+});
 
-/** ================= Clients ================= */
-export const upsertClient = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id, client } = data as { id?: string | null; client: any };
-      if (!client || typeof client !== "object") {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "client object is required"
-        );
-      }
-      if (!client.legalName) {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "legalName is required"
-        );
-      }
-
-      const payload = {
-        legalName: String(client.legalName),
-        tradingName: client.tradingName ? String(client.tradingName) : "",
-        industry: client.industry ? String(client.industry) : "TV",
-        status: client.status ? String(client.status) : "Prospect",
-        tier: client.tier ? String(client.tier) : "B",
-        taxId: client.taxId ? String(client.taxId) : "",
-        vatRegistered: !!client.vatRegistered,
-        discountRate:
-          client.discountRate === undefined
-            ? 0
-            : Number(client.discountRate || 0),
-        tags: Array.isArray(client.tags) ? client.tags : cleanTagsCSV(client.tags),
-        updatedAt: now,
-      };
-
-      if (id) {
-        await db.collection("clients").doc(id).set(payload, { merge: true });
-        return { ok: true, id };
-      } else {
-        const doc = await db.collection("clients").add({
-          ...payload,
-          createdAt: now,
-        });
-        return { ok: true, id: doc.id };
-      }
-    })
-  );
-
-export const deleteClient = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id } = data as { id: string };
-      if (!id) {
-        throw new functions.https.HttpsError("invalid-argument", "id required");
-      }
-      await db.collection("clients").doc(id).delete();
-      return { ok: true };
-    })
-  );
-
-/** ================= Inventory ================= */
-export const upsertInventory = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id, item } = data as { id?: string | null; item: any };
-      if (!item || typeof item !== "object") {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "item object is required"
-        );
-      }
-      if (!item.name) {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "name is required"
-        );
-      }
-
-      const payload = {
-        name: String(item.name),
-        quantity:
-          item.quantity === undefined ? 0 : Number(item.quantity || 0),
-        rentalRate:
-          item.rentalRate === undefined ? 0 : Number(item.rentalRate || 0),
-        updatedAt: now,
-      };
-
-      if (id) {
-        await db.collection("inventory").doc(id).set(payload, { merge: true });
-        return { ok: true, id };
-      } else {
-        const doc = await db.collection("inventory").add({
-          ...payload,
-          createdAt: now,
-        });
-        return { ok: true, id: doc.id };
-      }
-    })
-  );
-
-export const deleteInventory = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id } = data as { id: string };
-      if (!id) {
-        throw new functions.https.HttpsError("invalid-argument", "id required");
-      }
-      await db.collection("inventory").doc(id).delete();
-      return { ok: true };
-    })
-  );
-
-/** ================= Sales ================= */
-export const upsertSale = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id, sale } = data as { id?: string | null; sale: any };
-      if (!sale || typeof sale !== "object") {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "sale object is required"
-        );
-      }
-      if (!sale.name) {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "name is required"
-        );
-      }
-
-      const payload = {
-        name: String(sale.name),
-        amount: sale.amount === undefined ? 0 : Number(sale.amount || 0),
-        stage: sale.stage ? String(sale.stage) : "Lead",
-        updatedAt: now,
-      };
-
-      if (id) {
-        await db.collection("sales").doc(id).set(payload, { merge: true });
-        return { ok: true, id };
-      } else {
-        const doc = await db.collection("sales").add({
-          ...payload,
-          createdAt: now,
-        });
-        return { ok: true, id: doc.id };
-      }
-    })
-  );
-
-export const deleteSale = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id } = data as { id: string };
-      if (!id) {
-        throw new functions.https.HttpsError("invalid-argument", "id required");
-      }
-      await db.collection("sales").doc(id).delete();
-      return { ok: true };
-    })
-  );
-
-/** ================= Bookings ================= */
-export const upsertBooking = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id, booking } = data as { id?: string | null; booking: any };
-      if (!booking || typeof booking !== "object") {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "booking object is required"
-        );
-      }
-      if (!booking.title) {
-        throw new functions.https.HttpsError(
-          "invalid-argument",
-          "title is required"
-        );
-      }
-
-      const payload = {
-        title: String(booking.title),
-        start: booking.start ? String(booking.start) : "",
-        end: booking.end ? String(booking.end) : "",
-        status: booking.status ? String(booking.status) : "Tentative",
-        updatedAt: now,
-      };
-
-      if (id) {
-        await db.collection("bookings").doc(id).set(payload, { merge: true });
-        return { ok: true, id };
-      } else {
-        const doc = await db.collection("bookings").add({
-          ...payload,
-          createdAt: now,
-        });
-        return { ok: true, id: doc.id };
-      }
-    })
-  );
-
-export const deleteBooking = functions
-  .region("us-central1")
-  .https.onCall(
-    wrapCallable(async (data) => {
-      const { id } = data as { id: string };
-      if (!id) {
-        throw new functions.https.HttpsError("invalid-argument", "id required");
-      }
-      await db.collection("bookings").doc(id).delete();
-      return { ok: true };
-    })
-  );
+export const deleteClient = onCall({ region: "us-central1" }, async (req) => {
+  assertRole(req);
+  const id = (req.data?.id ?? "").toString().trim();
+  if (!id) throw new HttpsError("invalid-argument", "id is required.");
+  try {
+    await db.collection("clients").doc(id).delete();
+    return { ok: true, id };
+  } catch (err: any) {
+    console.error("deleteClient error", { uid: req.auth?.uid, id, err });
+    throw new HttpsError("internal", err?.message || "Unexpected error while deleting client.");
+  }
+});
